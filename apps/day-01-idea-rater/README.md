@@ -21,6 +21,10 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## One-click launch on macOS
+
+From the repo root, double-click [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command). It bootstraps a local `.venv` if needed, installs dependencies, and runs the app in your browser.
+
 ## Inputs
 
 - Idea description
