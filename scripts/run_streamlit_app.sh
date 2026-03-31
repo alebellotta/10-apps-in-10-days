@@ -26,20 +26,26 @@ if [ ! -f "${APP_DIR}/requirements.txt" ]; then
   exit 1
 fi
 
-if command -v python3.11 >/dev/null 2>&1; then
-  PYTHON_BIN="python3.11"
-elif command -v python3 >/dev/null 2>&1; then
-  PYTHON_BIN="python3"
-else
-  echo "Python 3 is required. Install Python 3.11 to run this app."
+if ! command -v python3.11 >/dev/null 2>&1; then
+  echo "Python 3.11 is required but was not found on this machine."
+  echo "Install Python 3.11, then re-run this launcher."
   exit 1
 fi
+
+PYTHON_BIN="python3.11"
 
 VENV_DIR="${APP_DIR}/.venv"
 PYTHON_VENV="${VENV_DIR}/bin/python"
 
 if [ ! -x "${PYTHON_VENV}" ]; then
   echo "Creating virtual environment in ${VENV_DIR}"
+  "${PYTHON_BIN}" -m venv "${VENV_DIR}"
+fi
+
+VENV_VERSION="$("${PYTHON_VENV}" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+if [ "${VENV_VERSION}" != "3.11" ]; then
+  echo "Existing virtual environment uses Python ${VENV_VERSION}. Recreating with Python 3.11."
+  rm -rf "${VENV_DIR}"
   "${PYTHON_BIN}" -m venv "${VENV_DIR}"
 fi
 

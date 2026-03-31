@@ -2,6 +2,8 @@
 
 Idea Rater is a rules-based Streamlit app for evaluating startup, product, and app ideas with a structured scoring model. It helps a founder or operator quickly pressure-test an idea before spending time building.
 
+[![Run App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://10-apps-in-10-days-b7xqnxqs8nqsmjzhva5cry.streamlit.app/)
+
 ## Features
 
 - Weighted score out of 100 across five dimensions
@@ -10,6 +12,10 @@ Idea Rater is a rules-based Streamlit app for evaluating startup, product, and a
 - Three recommended next experiments
 - Example preset for instant demo
 - Markdown export for sharing or saving a review
+
+## Live demo
+
+- [Run Idea Rater](https://10-apps-in-10-days-b7xqnxqs8nqsmjzhva5cry.streamlit.app/)
 
 ## Run locally
 
@@ -24,6 +30,10 @@ streamlit run app.py
 ## One-click launch on macOS
 
 From the repo root, double-click [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command). It bootstraps a local `.venv` if needed, installs dependencies, and runs the app in your browser.
+
+This launcher requires `python3.11` to be available on your machine and will recreate any older `.venv` built with the wrong Python version.
+
+If startup fails, check `day-01-idea-rater.log` in the repo root for the exact error.
 
 ## Inputs
 
