@@ -126,19 +126,19 @@ OLLAMA_MODE_PROFILES = {
     "Cheap": {
         "model": os.getenv("OLLAMA_CHEAP_MODEL", DEFAULT_OLLAMA_MODEL),
         "temperature": 0.1,
-        "max_tokens": 900,
+        "max_tokens": 700,
         "label": "Lowest local cost, fastest local draft",
     },
     "Balanced": {
         "model": os.getenv("OLLAMA_BALANCED_MODEL", DEFAULT_OLLAMA_MODEL),
         "temperature": 0.2,
-        "max_tokens": 1400,
+        "max_tokens": 1000,
         "label": "Best default for most local runs",
     },
     "Premium": {
         "model": os.getenv("OLLAMA_PREMIUM_MODEL", "qwen3:8b"),
         "temperature": 0.25,
-        "max_tokens": 2000,
+        "max_tokens": 1400,
         "label": "Richer local copy, heavier model",
     },
 }
@@ -161,29 +161,27 @@ def inject_css() -> None:
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
         :root {
-            --bg: #f5efe4;
-            --sand: #efe2ce;
-            --card: rgba(255, 252, 247, 0.9);
-            --ink: #1f2a2f;
-            --muted: #5e6a6e;
-            --accent: #e36a3d;
-            --accent-deep: #9e4321;
-            --line: rgba(31, 42, 47, 0.1);
-            --olive: #70825d;
-            --sun: #f0b65a;
-            --shadow: 0 22px 50px rgba(76, 52, 32, 0.12);
+            --bg: #f3f1ec;
+            --paper: rgba(255, 255, 255, 0.78);
+            --card: rgba(255, 255, 255, 0.9);
+            --ink: #15181c;
+            --muted: #66707a;
+            --accent: #ae8a5c;
+            --accent-soft: rgba(174, 138, 92, 0.12);
+            --line: rgba(21, 24, 28, 0.08);
+            --shadow: 0 20px 48px rgba(15, 20, 28, 0.08);
         }
         .stApp {
             background:
-                radial-gradient(circle at top left, rgba(227, 106, 61, 0.16), transparent 23%),
-                radial-gradient(circle at 92% 8%, rgba(112, 130, 93, 0.18), transparent 18%),
-                linear-gradient(180deg, #f8f2e8 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 20%),
+                radial-gradient(circle at 88% 0%, rgba(174, 138, 92, 0.1), transparent 16%),
+                linear-gradient(180deg, #f8f7f4 0%, var(--bg) 100%);
             color: var(--ink);
             font-family: "Manrope", sans-serif;
         }
         .block-container {
-            max-width: 1200px;
-            padding-top: 1.25rem;
+            max-width: 1180px;
+            padding-top: 1.1rem;
             padding-bottom: 3rem;
         }
         h1, h2, h3 {
@@ -192,36 +190,47 @@ def inject_css() -> None:
             letter-spacing: -0.03em;
         }
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #f7f0e4 0%, #f1e5d3 100%);
+            background: linear-gradient(180deg, #f6f5f2 0%, #efede8 100%);
             border-right: 1px solid var(--line);
         }
         [data-testid="stSidebar"] * {
             color: var(--ink);
         }
+        [data-testid="stMetric"] {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 0.85rem 1rem;
+            box-shadow: none;
+        }
+        [data-testid="stVerticalBlock"] [data-testid="stContainer"] {
+            border-radius: 22px;
+        }
         .hero {
-            background: rgba(255, 252, 247, 0.78);
-            border: 1px solid rgba(31, 42, 47, 0.08);
-            border-radius: 28px;
-            padding: 1.35rem 1.4rem;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(249, 247, 243, 0.82));
+            border: 1px solid rgba(21, 24, 28, 0.08);
+            border-radius: 32px;
+            padding: 1.6rem 1.7rem;
             color: var(--ink);
-            box-shadow: 0 18px 40px rgba(76, 52, 32, 0.08);
-            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.15rem;
         }
         .eyebrow {
             text-transform: uppercase;
-            letter-spacing: 0.18em;
+            letter-spacing: 0.22em;
             font-size: 0.72rem;
             color: var(--muted);
             margin-bottom: 0.45rem;
         }
         .hero-title {
-            font-size: 2.8rem;
-            line-height: 0.95;
-            margin-bottom: 0.55rem;
-            max-width: 700px;
+            font-size: 3rem;
+            line-height: 0.94;
+            margin-bottom: 0.6rem;
+            max-width: 760px;
         }
         .hero-copy {
-            max-width: 640px;
+            max-width: 680px;
             color: var(--muted);
         }
         .hero-strip {
@@ -231,15 +240,44 @@ def inject_css() -> None:
             margin-top: 1rem;
         }
         .chip {
-            background: rgba(31, 42, 47, 0.04);
-            border: 1px solid rgba(31, 42, 47, 0.08);
+            background: rgba(21, 24, 28, 0.03);
+            border: 1px solid rgba(21, 24, 28, 0.08);
             border-radius: 999px;
             padding: 0.45rem 0.75rem;
             font-size: 0.78rem;
         }
         .chip.ai-on {
-            background: rgba(227, 106, 61, 0.08);
-            border-color: rgba(227, 106, 61, 0.16);
+            background: var(--accent-soft);
+            border-color: rgba(174, 138, 92, 0.24);
+        }
+        .stButton > button,
+        .stDownloadButton > button {
+            border-radius: 999px;
+            border: 1px solid rgba(21, 24, 28, 0.08);
+            background: linear-gradient(180deg, #171a1f 0%, #20252c 100%);
+            color: #f7f5f1;
+            padding: 0.65rem 1rem;
+            font-weight: 600;
+            box-shadow: none;
+        }
+        .stButton > button:hover,
+        .stDownloadButton > button:hover {
+            border-color: rgba(21, 24, 28, 0.14);
+            background: linear-gradient(180deg, #111418 0%, #1a1e24 100%);
+            color: #ffffff;
+        }
+        .stTextInput input,
+        .stTextArea textarea,
+        .stDateInput input,
+        .stSelectbox [data-baseweb="select"] > div,
+        .stMultiSelect [data-baseweb="select"] > div {
+            border-radius: 16px !important;
+            background: rgba(255, 255, 255, 0.82) !important;
+            border: 1px solid rgba(21, 24, 28, 0.08) !important;
+        }
+        .stCodeBlock {
+            border-radius: 22px;
+            border: 1px solid var(--line);
         }
         </style>
         """,
@@ -479,6 +517,30 @@ def build_ai_grounding_payload(
 
 def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int, selected_mode: str) -> AITripResponse:
     profile = get_ollama_mode_profile(selected_mode)
+    compact_days = []
+    for day in grounding_payload["suggested_days"]:
+        compact_days.append(
+            {
+                "day_number": day["day_number"],
+                "theme": day["theme"],
+                "slots": [f"{slot['slot']}: {slot['title']}" for slot in day["slots"]],
+            }
+        )
+
+    compact_payload = {
+        "destination": grounding_payload["destination"],
+        "base_neighborhood": grounding_payload["base_neighborhood"],
+        "season": grounding_payload["season"],
+        "travel_party": grounding_payload["travel_party"],
+        "budget_style": grounding_payload["budget_style"],
+        "pace": grounding_payload["pace"],
+        "interests": grounding_payload["interests"],
+        "trip_goal": grounding_payload["trip_goal"],
+        "must_do": grounding_payload["must_do"],
+        "avoid": grounding_payload["avoid"],
+        "destination_strengths": grounding_payload["destination_strengths"],
+        "suggested_days": compact_days,
+    }
     prompt = dedent(
         f"""
         You are a premium travel planner.
@@ -490,11 +552,12 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         - Respect the destination, pace, budget style, season, and travel-party context.
         - Use the suggested activities as grounding.
         - Keep each field short and direct.
+        - Prefer realistic neighborhood flow over overexplaining.
         - Do not invent flights, exact restaurant reservations, or impossible transfers.
         - Return only JSON that matches the provided schema.
 
         Grounding data:
-        {json.dumps(grounding_payload, ensure_ascii=True, separators=(",", ":"))}
+        {json.dumps(compact_payload, ensure_ascii=True, separators=(",", ":"))}
         """
     ).strip()
 
@@ -503,7 +566,7 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         "stream": False,
         "messages": [{"role": "user", "content": prompt}],
         "format": AITripResponse.model_json_schema(),
-        "options": {"temperature": profile["temperature"], "num_predict": profile["max_tokens"]},
+        "options": {"temperature": profile["temperature"], "num_predict": profile["max_tokens"], "num_ctx": 4096},
     }
     request = Request(
         f"{DEFAULT_OLLAMA_URL}/api/chat",
@@ -592,9 +655,6 @@ def build_ai_markdown_export(
         "## Overview",
         ai_plan.overview,
         "",
-        "## Why this trip fits",
-        ai_plan.destination_fit,
-        "",
         "## Daily plan",
     ]
     for day in ai_plan.days:
@@ -605,10 +665,7 @@ def build_ai_markdown_export(
                 f"- Morning: {day.morning_plan}",
                 f"- Afternoon: {day.afternoon_plan}",
                 f"- Evening: {day.evening_plan}",
-                f"- Dining: {day.dining_recommendation}",
                 f"- Logistics: {day.logistics_tip}",
-                f"- Wow moment: {day.wow_moment}",
-                f"- Booking priority: {day.booking_priority}",
             ]
         )
     lines.extend(
@@ -753,7 +810,7 @@ def main() -> None:
     selected_ai_mode = st.sidebar.selectbox(
         "AI mode",
         ["Cheap", "Balanced", "Premium"],
-        index=1,
+        index=0,
         help="Choose the tradeoff between cost, speed, and richness of the generated itinerary copy.",
     )
     ollama_up, available_models, ollama_status = get_ollama_status()
@@ -819,7 +876,12 @@ def main() -> None:
         if "trip_ai_cache" not in st.session_state:
             st.session_state.trip_ai_cache = {}
         ai_cache: dict[str, dict[str, Any]] = st.session_state.trip_ai_cache
-        generate_ai = st.sidebar.button("Generate AI concierge itinerary", use_container_width=True)
+        can_generate_ai = not available_models or selected_model in available_models
+        generate_ai = st.sidebar.button(
+            "Generate AI concierge draft",
+            use_container_width=True,
+            disabled=not can_generate_ai,
+        )
         if grounding_signature in ai_cache:
             ai_plan = AITripResponse.model_validate(ai_cache[grounding_signature])
         if generate_ai:
