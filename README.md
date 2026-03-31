@@ -15,8 +15,8 @@ streamlit run app.py
 | Day | App | Folder | Status |
 | --- | --- | --- | --- |
 | 01 | Idea Rater | `apps/day-01-idea-rater` | Built |
-| 02 | Meeting Minute Maker | `apps/day-02-meeting-minute-maker` | Planned |
-| 03 | Personal Finance Simulator | `apps/day-03-personal-finance-simulator` | Planned |
+| 02 | Classic Game | `apps/day-02-classic-game` | Built |
+| 03 | Serie A LiveScore | `apps/day-03-serie-a-livescore` | Built |
 | 04 | Travel Itinerary Builder | `apps/day-04-travel-itinerary-builder` | Planned |
 | 05 | Contract Risk Scanner | `apps/day-05-contract-risk-scanner` | Planned |
 | 06 | YouTube Shorts Planner | `apps/day-06-youtube-shorts-planner` | Planned |
@@ -37,13 +37,19 @@ Each app README contains app-specific usage details and sample inputs.
 
 ## Local launcher
 
-For macOS, you can double-click [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command) to start Day 01 locally. The launcher:
+For macOS, you can double-click either launcher to start an app locally:
+
+- [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command)
+- [run-day-02-classic-game.command](/Users/abellotta/Documents/New%20project/run-day-02-classic-game.command)
+- [run-day-03-serie-a-livescore.command](/Users/abellotta/Documents/New%20project/run-day-03-serie-a-livescore.command)
+
+Each launcher:
 
 - creates a local virtual environment on first run
 - requires Python 3.11 and recreates stale venvs built with another version
 - installs dependencies if needed
 - starts Streamlit so the app opens in your browser
-- writes startup errors to `day-01-idea-rater.log` in the repo root
+- writes startup errors to a `day-*.log` file in the repo root
 
 ## Live apps
 
