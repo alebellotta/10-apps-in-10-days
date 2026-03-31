@@ -40,5 +40,13 @@ Each app README contains app-specific usage details and sample inputs.
 For macOS, you can double-click [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command) to start Day 01 locally. The launcher:
 
 - creates a local virtual environment on first run
+- requires Python 3.11 and recreates stale venvs built with another version
 - installs dependencies if needed
 - starts Streamlit so the app opens in your browser
+- writes startup errors to `day-01-idea-rater.log` in the repo root
+
+## Live apps
+
+| Day | App | Live URL |
+| --- | --- | --- |
+| 01 | Idea Rater | [Run App](https://10-apps-in-10-days-b7xqnxqs8nqsmjzhva5cry.streamlit.app/) |
