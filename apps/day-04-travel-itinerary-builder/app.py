@@ -29,28 +29,21 @@ class Activity:
 class AITripDay(BaseModel):
     day_number: int = Field(ge=1, le=7)
     title: str = Field(min_length=6, max_length=80)
-    morning_plan: str = Field(min_length=30, max_length=320)
-    afternoon_plan: str = Field(min_length=30, max_length=320)
-    evening_plan: str = Field(min_length=30, max_length=320)
-    dining_recommendation: str = Field(min_length=20, max_length=220)
-    logistics_tip: str = Field(min_length=20, max_length=220)
-    wow_moment: str = Field(min_length=20, max_length=220)
-    booking_priority: str = Field(min_length=20, max_length=220)
+    morning_plan: str = Field(min_length=18, max_length=220)
+    afternoon_plan: str = Field(min_length=18, max_length=220)
+    evening_plan: str = Field(min_length=18, max_length=220)
+    logistics_tip: str = Field(min_length=18, max_length=180)
 
 
 class AITripBrief(BaseModel):
-    trip_hook: str = Field(min_length=20, max_length=180)
-    client_summary: str = Field(min_length=50, max_length=420)
-    personalization_notes: list[str] = Field(min_length=3, max_length=5)
-    booking_checklist: list[str] = Field(min_length=3, max_length=6)
-    budget_notes: list[str] = Field(min_length=2, max_length=4)
-    concierge_upgrade: str = Field(min_length=25, max_length=220)
+    trip_hook: str = Field(min_length=16, max_length=120)
+    client_summary: str = Field(min_length=30, max_length=220)
+    booking_checklist: list[str] = Field(min_length=3, max_length=4)
+    concierge_upgrade: str = Field(min_length=18, max_length=160)
 
 
 class AITripResponse(BaseModel):
-    overview: str = Field(min_length=60, max_length=500)
-    destination_fit: str = Field(min_length=30, max_length=220)
-    tone: str = Field(min_length=10, max_length=80)
+    overview: str = Field(min_length=30, max_length=240)
     days: list[AITripDay] = Field(min_length=1, max_length=7)
     brief: AITripBrief
 
@@ -133,16 +126,19 @@ OLLAMA_MODE_PROFILES = {
     "Cheap": {
         "model": os.getenv("OLLAMA_CHEAP_MODEL", DEFAULT_OLLAMA_MODEL),
         "temperature": 0.1,
+        "max_tokens": 900,
         "label": "Lowest local cost, fastest local draft",
     },
     "Balanced": {
         "model": os.getenv("OLLAMA_BALANCED_MODEL", DEFAULT_OLLAMA_MODEL),
         "temperature": 0.2,
+        "max_tokens": 1400,
         "label": "Best default for most local runs",
     },
     "Premium": {
         "model": os.getenv("OLLAMA_PREMIUM_MODEL", "qwen3:8b"),
         "temperature": 0.25,
+        "max_tokens": 2000,
         "label": "Richer local copy, heavier model",
     },
 }
@@ -203,31 +199,19 @@ def inject_css() -> None:
             color: var(--ink);
         }
         .hero {
-            background:
-                linear-gradient(135deg, rgba(31, 42, 47, 0.95) 0%, rgba(66, 76, 63, 0.93) 45%, rgba(227, 106, 61, 0.88) 100%);
-            border-radius: 30px;
-            padding: 1.6rem;
-            color: #fff8ef;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            background: rgba(255, 252, 247, 0.78);
+            border: 1px solid rgba(31, 42, 47, 0.08);
+            border-radius: 28px;
+            padding: 1.35rem 1.4rem;
+            color: var(--ink);
+            box-shadow: 0 18px 40px rgba(76, 52, 32, 0.08);
             margin-bottom: 1rem;
-        }
-        .hero::after {
-            content: "";
-            position: absolute;
-            right: -30px;
-            top: -30px;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 65%);
         }
         .eyebrow {
             text-transform: uppercase;
             letter-spacing: 0.18em;
             font-size: 0.72rem;
-            opacity: 0.82;
+            color: var(--muted);
             margin-bottom: 0.45rem;
         }
         .hero-title {
@@ -235,173 +219,27 @@ def inject_css() -> None:
             line-height: 0.95;
             margin-bottom: 0.55rem;
             max-width: 700px;
-            position: relative;
-            z-index: 1;
         }
         .hero-copy {
             max-width: 640px;
-            color: rgba(255, 248, 239, 0.88);
-            position: relative;
-            z-index: 1;
+            color: var(--muted);
         }
         .hero-strip {
             display: flex;
             gap: 0.7rem;
             flex-wrap: wrap;
             margin-top: 1rem;
-            position: relative;
-            z-index: 1;
         }
         .chip {
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(31, 42, 47, 0.04);
+            border: 1px solid rgba(31, 42, 47, 0.08);
             border-radius: 999px;
             padding: 0.45rem 0.75rem;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
         }
         .chip.ai-on {
-            background: rgba(240, 182, 90, 0.22);
-            border-color: rgba(240, 182, 90, 0.28);
-        }
-        .panel, .day-card, .hint-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            padding: 1rem;
-            box-shadow: var(--shadow);
-        }
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.85rem;
-            margin: 1rem 0 1.2rem;
-        }
-        .metric-card {
-            background: rgba(255, 252, 247, 0.72);
-            border: 1px solid var(--line);
-            border-radius: 22px;
-            padding: 1rem;
-            box-shadow: var(--shadow);
-        }
-        .metric-label {
-            color: var(--muted);
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-        }
-        .metric-value {
-            font-family: "Fraunces", serif;
-            font-size: 2rem;
-            margin-top: 0.28rem;
-        }
-        .metric-note {
-            color: var(--muted);
-            font-size: 0.9rem;
-            margin-top: 0.2rem;
-        }
-        .section-title {
-            font-size: 1.2rem;
-            margin: 0.2rem 0 0.9rem;
-        }
-        .day-card {
-            padding: 1.1rem;
-            margin-bottom: 0.9rem;
-            background: linear-gradient(180deg, rgba(255,253,250,0.92), rgba(249,243,233,0.94));
-        }
-        .day-title {
-            font-family: "Fraunces", serif;
-            font-size: 1.35rem;
-            margin-bottom: 0.2rem;
-        }
-        .day-date {
-            color: var(--muted);
-            font-size: 0.9rem;
-            margin-bottom: 0.8rem;
-        }
-        .activity-row {
-            display: grid;
-            grid-template-columns: 96px 1fr 110px;
-            gap: 0.8rem;
-            align-items: start;
-            padding: 0.7rem 0;
-            border-top: 1px solid rgba(31, 42, 47, 0.08);
-        }
-        .activity-row:first-of-type {
-            border-top: none;
-            padding-top: 0;
-        }
-        .slot {
-            color: var(--accent-deep);
-            font-weight: 700;
-            font-size: 0.86rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .activity-title {
-            font-weight: 700;
-            margin-bottom: 0.15rem;
-        }
-        .activity-meta {
-            color: var(--muted);
-            font-size: 0.88rem;
-        }
-        .price-pill {
-            justify-self: end;
-            background: #fff4ea;
-            color: var(--accent-deep);
-            border: 1px solid rgba(227, 106, 61, 0.22);
-            border-radius: 999px;
-            padding: 0.35rem 0.65rem;
-            font-size: 0.82rem;
-            font-weight: 700;
-        }
-        .tag-row {
-            display: flex;
-            gap: 0.55rem;
-            flex-wrap: wrap;
-            margin-top: 0.65rem;
-        }
-        .tag {
-            border-radius: 999px;
-            padding: 0.32rem 0.58rem;
-            background: rgba(112, 130, 93, 0.12);
-            color: #45503d;
-            font-size: 0.78rem;
-            border: 1px solid rgba(112, 130, 93, 0.18);
-        }
-        .copy-block {
-            background: linear-gradient(180deg, rgba(31, 42, 47, 0.96), rgba(42, 52, 50, 0.94));
-            color: #fff8ef;
-            border-radius: 24px;
-            padding: 1.1rem;
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: var(--shadow);
-        }
-        .copy-title {
-            font-family: "Fraunces", serif;
-            font-size: 1.2rem;
-            margin-bottom: 0.45rem;
-        }
-        .copy-text {
-            color: rgba(255, 248, 239, 0.88);
-            line-height: 1.55;
-        }
-        .list-card {
-            background: rgba(255, 252, 247, 0.75);
-            border-radius: 20px;
-            border: 1px solid var(--line);
-            padding: 0.95rem;
-            box-shadow: var(--shadow);
-            height: 100%;
-        }
-        .list-card-title {
-            font-weight: 800;
-            margin-bottom: 0.45rem;
-        }
-        @media (max-width: 900px) {
-            .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .activity-row { grid-template-columns: 1fr; }
-            .price-pill { justify-self: start; }
+            background: rgba(227, 106, 61, 0.08);
+            border-color: rgba(227, 106, 61, 0.16);
         }
         </style>
         """,
@@ -643,20 +481,16 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
     profile = get_ollama_mode_profile(selected_mode)
     prompt = dedent(
         f"""
-        You are a premium travel planner preparing client-ready itinerary copy.
+        You are a premium travel planner.
 
-        Create a polished itinerary for exactly {day_count} day(s). Use the supplied grounding data faithfully.
-        Keep the plan realistic, appealing, and commercially useful. The tone should feel like a boutique agency:
-        confident, warm, specific, and high-end without sounding generic.
+        Create a concise but polished itinerary for exactly {day_count} day(s).
+        Keep the writing elegant, practical, and compact.
 
         Requirements:
         - Respect the destination, pace, budget style, season, and travel-party context.
-        - Use the suggested activities as grounding, but elevate them into client-facing prose.
-        - Make each day feel distinct and intentional.
-        - Include practical logistics and booking advice.
+        - Use the suggested activities as grounding.
+        - Keep each field short and direct.
         - Do not invent flights, exact restaurant reservations, or impossible transfers.
-        - If the user noted must-do or avoid preferences, reflect them clearly.
-        - Keep all output in English.
         - Return only JSON that matches the provided schema.
 
         Grounding data:
@@ -669,7 +503,7 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         "stream": False,
         "messages": [{"role": "user", "content": prompt}],
         "format": AITripResponse.model_json_schema(),
-        "options": {"temperature": profile["temperature"]},
+        "options": {"temperature": profile["temperature"], "num_predict": profile["max_tokens"]},
     }
     request = Request(
         f"{DEFAULT_OLLAMA_URL}/api/chat",
@@ -784,14 +618,8 @@ def build_ai_markdown_export(
             f"- Hook: {ai_plan.brief.trip_hook}",
             f"- Client summary: {ai_plan.brief.client_summary}",
             "",
-            "## Personalization notes",
-            *[f"- {item}" for item in ai_plan.brief.personalization_notes],
-            "",
             "## Booking checklist",
             *[f"- {item}" for item in ai_plan.brief.booking_checklist],
-            "",
-            "## Budget notes",
-            *[f"- {item}" for item in ai_plan.brief.budget_notes],
             "",
             "## Upgrade idea",
             ai_plan.brief.concierge_upgrade,
@@ -842,8 +670,6 @@ def render_itinerary(itinerary: list[dict[str, object]], ai_plan: AITripResponse
         with st.container(border=True):
             st.markdown(f"### {ai_day.title if ai_day else day['theme']}")
             st.caption(day["date"].strftime("%A, %d %B %Y"))
-            if ai_day:
-                st.write(ai_day.wow_moment)
             for item in day["items"]:
                 activity: Activity = item["activity"]
                 ai_copy = {
@@ -869,20 +695,11 @@ def render_ai_brief(ai_plan: AITripResponse) -> None:
         st.markdown(f"### {ai_plan.brief.trip_hook}")
         st.write(ai_plan.overview)
         st.write(ai_plan.brief.client_summary)
-        st.write(f"**Why it works:** {ai_plan.destination_fit}")
         st.write(f"**Upgrade idea:** {ai_plan.brief.concierge_upgrade}")
 
-    col1, col2, col3 = st.columns(3, gap="large")
-    sections = [
-        ("Personalization notes", ai_plan.brief.personalization_notes),
-        ("Booking checklist", ai_plan.brief.booking_checklist),
-        ("Budget notes", ai_plan.brief.budget_notes),
-    ]
-    for column, (title, items) in zip((col1, col2, col3), sections, strict=False):
-        with column:
-            st.markdown(f"**{title}**")
-            for item in items:
-                st.write(f"- {item}")
+    st.markdown("**Booking checklist**")
+    for item in ai_plan.brief.booking_checklist:
+        st.write(f"- {item}")
 
 
 def render_side_guides(destination: str, season: str, totals: dict[str, int], notes: str) -> None:
@@ -1024,34 +841,20 @@ def main() -> None:
         if ai_plan:
             render_ai_brief(ai_plan)
     with right:
-        st.markdown("<div class='section-title'>Planner summary</div>", unsafe_allow_html=True)
-        st.markdown(
-            dedent(
-                f"""
-                <div class="hint-card">
-                    <strong>Base area</strong><br>{neighborhood}<br><br>
-                    <strong>Destination angle</strong><br>{destination} is strongest for {", ".join(get_destination_context(destination, interests)["best_for"][:3])}.<br><br>
-                    <strong>Trip rhythm</strong><br>{pace} pace with {PACE_TARGETS[pace]} structured blocks per day.<br><br>
-                    <strong>Client objective</strong><br>{trip_goal}
-                </div>
-                """
-            ),
-            unsafe_allow_html=True,
-        )
-        if ai_plan:
-            st.markdown("<div class='section-title'>AI planning lens</div>", unsafe_allow_html=True)
-            st.markdown(
-                dedent(
-                    f"""
-                    <div class="panel">
-                        <strong>Tone</strong><br>{ai_plan.tone}<br><br>
-                        <strong>Trip fit</strong><br>{ai_plan.destination_fit}<br><br>
-                        <strong>Upgrade angle</strong><br>{ai_plan.brief.concierge_upgrade}
-                    </div>
-                    """
-                ),
-                unsafe_allow_html=True,
+        st.subheader("Planner summary")
+        with st.container(border=True):
+            st.write(f"**Base area:** {neighborhood}")
+            st.write(
+                f"**Destination angle:** {destination} is strongest for "
+                f"{', '.join(get_destination_context(destination, interests)['best_for'][:3])}."
             )
+            st.write(f"**Trip rhythm:** {pace} pace with {PACE_TARGETS[pace]} structured blocks per day.")
+            st.write(f"**Client objective:** {trip_goal}")
+        if ai_plan:
+            st.subheader("AI planning lens")
+            with st.container(border=True):
+                st.write(f"**Overview:** {ai_plan.overview}")
+                st.write(f"**Upgrade angle:** {ai_plan.brief.concierge_upgrade}")
         render_side_guides(destination, season, totals, notes)
 
     markdown_export = (
@@ -1077,7 +880,7 @@ def main() -> None:
         )
     )
 
-    st.markdown("<div class='section-title'>Shareable export</div>", unsafe_allow_html=True)
+    st.subheader("Shareable export")
     st.code(markdown_export, language="markdown")
     st.download_button(
         "Download itinerary as Markdown",
