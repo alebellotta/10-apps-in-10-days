@@ -128,6 +128,7 @@ SEASON_PACKING = {
 
 DEFAULT_OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 DEFAULT_OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")
+OLLAMA_TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "300"))
 OLLAMA_MODE_PROFILES = {
     "Cheap": {
         "model": os.getenv("OLLAMA_CHEAP_MODEL", DEFAULT_OLLAMA_MODEL),
@@ -144,6 +145,17 @@ OLLAMA_MODE_PROFILES = {
         "temperature": 0.25,
         "label": "Richer local copy, heavier model",
     },
+}
+
+GENERIC_ACTIVITY_LIBRARY = {
+    "history": ("Historic core walking route", "history", "context-rich", 2.5, 18, False, True, False, "Anchor the day with the most storied district and one standout landmark."),
+    "food": ("Signature neighborhood tasting crawl", "food", "social", 2.5, 32, False, False, True, "Build the day around a local food street, market, or bistro cluster."),
+    "culture": ("Museum and old-town combination", "culture", "immersive", 2.5, 24, True, True, False, "Pair one cultural anchor with a slower neighborhood wander."),
+    "architecture": ("Design and architecture circuit", "architecture", "visual", 2.0, 16, False, True, True, "Focus on the most photogenic district and one iconic building."),
+    "art": ("Gallery-led creative afternoon", "art", "refined", 2.0, 20, True, False, False, "Keep the art block selective so the day still feels light."),
+    "relaxation": ("Slow scenic reset", "relaxation", "calm", 1.5, 10, False, False, True, "Use a park, waterfront, or viewpoint to create breathing room."),
+    "beach": ("Coastal or lakeside unwind", "beach", "easygoing", 2.0, 14, False, False, True, "A flexible soft-energy block when the weather cooperates."),
+    "nightlife": ("Late-night local hotspot run", "nightlife", "lively", 2.5, 28, False, False, True, "Reserve one evening for the city’s most atmospheric bars or music spots."),
 }
 
 
@@ -413,7 +425,7 @@ def validate_trip_inputs(start_date: date, end_date: date, interests: list[str],
 
 
 def choose_activities(destination: str, interests: list[str], pace: str, wants_nightlife: bool) -> list[Activity]:
-    pool = DESTINATIONS[destination]["activities"]
+    pool = get_destination_context(destination, interests)["activities"]
     scored: list[tuple[int, Activity]] = []
     for activity in pool:
         score = 0
@@ -471,7 +483,7 @@ def build_daily_plan(
                 "date": current_date,
                 "theme": f"Day {day_offset + 1} - {'Arrival flow' if day_offset == 0 else 'Local rhythm'}",
                 "items": day_items,
-                "daily_spend": daily_spend + int(DESTINATIONS[destination]["daily_budget"][budget_style] * 0.35),
+                "daily_spend": daily_spend + int(get_destination_context(destination, interests)["daily_budget"][budget_style] * 0.35),
             }
         )
     return itinerary
@@ -490,8 +502,68 @@ def ollama_ready(selected_mode: str) -> tuple[bool, str]:
     return True, f"{selected_mode} local mode ready via {profile['model']} at {DEFAULT_OLLAMA_URL}."
 
 
-def itinerary_totals(destination: str, budget_style: str, itinerary: list[dict[str, object]]) -> dict[str, int]:
-    lodging_food = int(DESTINATIONS[destination]["daily_budget"][budget_style]) * len(itinerary)
+def build_generic_destination(destination: str, interests: list[str]) -> dict[str, object]:
+    selected_interests = interests or ["culture", "food", "architecture"]
+    best_for = selected_interests[:4]
+    activities = [
+        Activity(
+            title=f"{destination} {title}",
+            category=category,
+            vibe=vibe,
+            duration_hours=duration_hours,
+            price_eur=price_eur,
+            indoor=indoor,
+            morning_fit=morning_fit,
+            evening_fit=evening_fit,
+            description=description,
+        )
+        for interest in selected_interests
+        for title, category, vibe, duration_hours, price_eur, indoor, morning_fit, evening_fit, description in [GENERIC_ACTIVITY_LIBRARY[interest]]
+    ]
+    activities.extend(
+        [
+            Activity(
+                f"{destination} old town orientation walk",
+                "culture",
+                "wandering",
+                1.5,
+                0,
+                False,
+                True,
+                True,
+                "Use the first day to understand the city center, key districts, and easy dining options.",
+            ),
+            Activity(
+                f"{destination} signature viewpoint stop",
+                "relaxation",
+                "scenic",
+                1.5,
+                0,
+                False,
+                False,
+                True,
+                "A short scenic payoff that gives the itinerary a strong emotional moment.",
+            ),
+        ]
+    )
+    return {
+        "country": "Custom",
+        "airport": "TBD",
+        "best_for": best_for,
+        "daily_budget": {"Budget": 120, "Comfort": 210, "Premium": 340},
+        "packing": ["Comfortable walking shoes", "Phone charger", "Weather-ready layer"],
+        "activities": activities,
+    }
+
+
+def get_destination_context(destination: str, interests: list[str]) -> dict[str, object]:
+    if destination in DESTINATIONS:
+        return DESTINATIONS[destination]
+    return build_generic_destination(destination, interests)
+
+
+def itinerary_totals(destination: str, interests: list[str], budget_style: str, itinerary: list[dict[str, object]]) -> dict[str, int]:
+    lodging_food = int(get_destination_context(destination, interests)["daily_budget"][budget_style]) * len(itinerary)
     experiences = sum(int(day["daily_spend"]) for day in itinerary)
     total = lodging_food + experiences
     return {"lodging_food": lodging_food, "experiences": experiences, "total": total}
@@ -519,8 +591,8 @@ def build_ai_grounding_payload(
     compact_avoid = avoid.strip()[:120]
     return {
         "destination": destination,
-        "country": DESTINATIONS[destination]["country"],
-        "airport": DESTINATIONS[destination]["airport"],
+        "country": get_destination_context(destination, interests)["country"],
+        "airport": get_destination_context(destination, interests)["airport"],
         "base_neighborhood": neighborhood,
         "season": season,
         "travel_party": travel_party,
@@ -533,7 +605,7 @@ def build_ai_grounding_payload(
         "avoid": compact_avoid,
         "notes": compact_notes,
         "budget_snapshot_eur": totals,
-        "destination_strengths": DESTINATIONS[destination]["best_for"],
+        "destination_strengths": get_destination_context(destination, interests)["best_for"],
         "suggested_days": [
             {
                 "day_number": index + 1,
@@ -594,7 +666,7 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         method="POST",
     )
     try:
-        with urlopen(request, timeout=180) as response:
+        with urlopen(request, timeout=OLLAMA_TIMEOUT_SECONDS) as response:
             body = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -742,7 +814,7 @@ def render_hero(destination: str, trip_days: int, travel_party: str, best_for: l
 
 def render_metrics(destination: str, season: str, itinerary: list[dict[str, object]], totals: dict[str, int]) -> None:
     avg_daily = round(totals["total"] / max(len(itinerary), 1))
-    airport = DESTINATIONS[destination]["airport"]
+    airport = get_destination_context(destination, [])["airport"]
     st.markdown(
         f"""
         <div class="metric-grid">
@@ -851,7 +923,7 @@ def render_ai_brief(ai_plan: AITripResponse) -> None:
 
 
 def render_side_guides(destination: str, season: str, totals: dict[str, int], notes: str) -> None:
-    destination_info = DESTINATIONS[destination]
+    destination_info = get_destination_context(destination, [])
     packing_list = destination_info["packing"] + SEASON_PACKING[season]
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -873,7 +945,13 @@ def main() -> None:
     inject_css()
 
     st.sidebar.title("Trip inputs")
-    destination = st.sidebar.selectbox("Destination", list(DESTINATIONS.keys()))
+    destination_choice = st.sidebar.selectbox("Destination", list(DESTINATIONS.keys()) + ["Custom"])
+    custom_destination = st.sidebar.text_input(
+        "Custom location",
+        placeholder="Example: Lisbon, Kyoto, Cape Town",
+        disabled=destination_choice != "Custom",
+    )
+    destination = custom_destination.strip() if destination_choice == "Custom" and custom_destination.strip() else destination_choice
     today = date.today()
     start_date = st.sidebar.date_input("Start date", value=today + timedelta(days=21))
     end_date = st.sidebar.date_input("End date", value=today + timedelta(days=24))
@@ -888,7 +966,7 @@ def main() -> None:
     interests = st.sidebar.multiselect(
         "Interests",
         ["history", "food", "culture", "architecture", "art", "relaxation", "beach", "nightlife"],
-        default=list(DESTINATIONS[destination]["best_for"][:3]),
+        default=list(get_destination_context(destination, [])["best_for"][:3]),
     )
     wants_nightlife = st.sidebar.toggle("Bias one evening toward nightlife", value=travel_party in {"Couple", "Friends"})
     st.sidebar.markdown("### AI concierge")
@@ -904,7 +982,7 @@ def main() -> None:
     st.sidebar.caption(ai_mode_label)
     st.sidebar.caption(ai_status)
     st.sidebar.caption(
-        "Run `ollama serve` and pull a model such as `qwen3:4b` before generating the itinerary."
+        f"Run `ollama serve` and pull a model such as `qwen3:4b`. Timeout is currently {OLLAMA_TIMEOUT_SECONDS}s."
     )
     notes = st.sidebar.text_area(
         "Trip notes",
@@ -914,7 +992,7 @@ def main() -> None:
     trip_days = trip_length(start_date, end_date)
     errors = validate_trip_inputs(start_date, end_date, interests, trip_days)
 
-    render_hero(destination, max(trip_days, 1), travel_party, list(DESTINATIONS[destination]["best_for"]), enable_ai)
+    render_hero(destination, max(trip_days, 1), travel_party, list(get_destination_context(destination, interests)["best_for"]), enable_ai)
 
     if errors:
         for error in errors:
@@ -922,7 +1000,7 @@ def main() -> None:
         st.stop()
 
     itinerary = build_daily_plan(destination, start_date, end_date, interests, pace, budget_style, wants_nightlife)
-    totals = itinerary_totals(destination, budget_style, itinerary)
+    totals = itinerary_totals(destination, interests, budget_style, itinerary)
     ai_plan: AITripResponse | None = None
     grounding_payload = build_ai_grounding_payload(
         destination=destination,
@@ -955,7 +1033,10 @@ def main() -> None:
                     ai_plan = generate_ollama_trip_plan(grounding_payload, len(itinerary), selected_ai_mode)
                     ai_cache[grounding_signature] = ai_plan.model_dump()
                 except Exception as exc:
-                    st.warning(f"AI generation failed, so the app is showing the curated fallback plan instead. Details: {exc}")
+                    st.warning(
+                        f"AI generation did not finish, so the app is showing the curated fallback plan. "
+                        f"If you are using a local model, keep `ollama serve` running and try `Cheap` mode first. Details: {exc}"
+                    )
 
     render_metrics(destination, season, itinerary, totals)
 
@@ -971,7 +1052,7 @@ def main() -> None:
                 f"""
                 <div class="hint-card">
                     <strong>Base area</strong><br>{neighborhood}<br><br>
-                    <strong>Destination angle</strong><br>{destination} is strongest for {", ".join(DESTINATIONS[destination]["best_for"][:3])}.<br><br>
+                    <strong>Destination angle</strong><br>{destination} is strongest for {", ".join(get_destination_context(destination, interests)["best_for"][:3])}.<br><br>
                     <strong>Trip rhythm</strong><br>{pace} pace with {PACE_TARGETS[pace]} structured blocks per day.<br><br>
                     <strong>Client objective</strong><br>{trip_goal}
                 </div>
