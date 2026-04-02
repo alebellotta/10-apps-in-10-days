@@ -502,6 +502,18 @@ def ollama_ready(selected_mode: str) -> tuple[bool, str]:
     return True, f"{selected_mode} local mode ready via {profile['model']} at {DEFAULT_OLLAMA_URL}."
 
 
+def get_ollama_status() -> tuple[bool, list[str], str]:
+    request = Request(f"{DEFAULT_OLLAMA_URL}/api/tags", method="GET")
+    try:
+        with urlopen(request, timeout=5) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return False, [], f"Ollama is not reachable at {DEFAULT_OLLAMA_URL}. Start it with `ollama serve`."
+
+    models = [item.get("name", "") for item in body.get("models", []) if item.get("name")]
+    return True, models, f"Ollama is reachable at {DEFAULT_OLLAMA_URL}."
+
+
 def build_generic_destination(destination: str, interests: list[str]) -> dict[str, object]:
     selected_interests = interests or ["culture", "food", "architecture"]
     best_for = selected_interests[:4]
@@ -815,99 +827,50 @@ def render_hero(destination: str, trip_days: int, travel_party: str, best_for: l
 def render_metrics(destination: str, season: str, itinerary: list[dict[str, object]], totals: dict[str, int]) -> None:
     avg_daily = round(totals["total"] / max(len(itinerary), 1))
     airport = get_destination_context(destination, [])["airport"]
-    st.markdown(
-        f"""
-        <div class="metric-grid">
-            <div class="metric-card">
-                <div class="metric-label">Estimated total</div>
-                <div class="metric-value">{format_currency(totals['total'])}</div>
-                <div class="metric-note">Activities, food, and stay budget blended.</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Avg daily spend</div>
-                <div class="metric-value">{format_currency(avg_daily)}</div>
-                <div class="metric-note">Useful for adjusting pace or upgrade choices.</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Best arrival airport</div>
-                <div class="metric-value">{airport}</div>
-                <div class="metric-note">Handy shortcut for booking research.</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Season mode</div>
-                <div class="metric-value">{season}</div>
-                <div class="metric-note">Packing notes and day rhythm adapt to it.</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    cols = st.columns(4)
+    cols[0].metric("Estimated total", format_currency(totals["total"]), help="Activities, food, and stay budget blended.")
+    cols[1].metric("Avg daily spend", format_currency(avg_daily), help="Useful for adjusting pace or upgrade choices.")
+    cols[2].metric("Best arrival airport", airport, help="Handy shortcut for booking research.")
+    cols[3].metric("Season mode", season, help="Packing notes and day rhythm adapt to it.")
 
 
 def render_itinerary(itinerary: list[dict[str, object]], ai_plan: AITripResponse | None = None) -> None:
-    st.markdown("<div class='section-title'>Day-by-day itinerary</div>", unsafe_allow_html=True)
+    st.subheader("Day-by-day itinerary")
     ai_days = {day.day_number: day for day in ai_plan.days} if ai_plan else {}
     for index, day in enumerate(itinerary, start=1):
         ai_day = ai_days.get(index)
-        rows = []
-        for item in day["items"]:
-            activity: Activity = item["activity"]
-            ai_copy = {
-                "Morning": ai_day.morning_plan if ai_day else activity.description,
-                "Afternoon": ai_day.afternoon_plan if ai_day else activity.description,
-                "Evening": ai_day.evening_plan if ai_day else activity.description,
-            }
-            rows.append(
-                dedent(
-                    f"""
-                <div class="activity-row">
-                    <div class="slot">{item['slot']}</div>
-                    <div>
-                        <div class="activity-title">{activity.title}</div>
-                        <div class="activity-meta">{ai_copy[item['slot']]}</div>
-                        <div class="tag-row">
-                            <span class="tag">{activity.category}</span>
-                            <span class="tag">{activity.vibe}</span>
-                            <span class="tag">{activity.duration_hours:.1f}h</span>
-                            <span class="tag">{'Indoor backup' if activity.indoor else 'Outdoor lean'}</span>
-                        </div>
-                    </div>
-                    <div class="price-pill">{format_currency(activity.price_eur)}</div>
-                </div>
-                """
-                ).strip()
-            )
-        st.markdown(
-            dedent(
-                f"""
-            <section class="day-card">
-                <div class="day-title">{ai_day.title if ai_day else day['theme']}</div>
-                <div class="day-date">{day['date'].strftime('%A, %d %B %Y')}</div>
-                {'<div class="activity-meta" style="margin-bottom:0.75rem;">' + ai_day.wow_moment + '</div>' if ai_day else ''}
-                {''.join(rows)}
-            </section>
-            """
-            ).strip(),
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown(f"### {ai_day.title if ai_day else day['theme']}")
+            st.caption(day["date"].strftime("%A, %d %B %Y"))
+            if ai_day:
+                st.write(ai_day.wow_moment)
+            for item in day["items"]:
+                activity: Activity = item["activity"]
+                ai_copy = {
+                    "Morning": ai_day.morning_plan if ai_day else activity.description,
+                    "Afternoon": ai_day.afternoon_plan if ai_day else activity.description,
+                    "Evening": ai_day.evening_plan if ai_day else activity.description,
+                }
+                col_a, col_b = st.columns([4, 1])
+                with col_a:
+                    st.markdown(f"**{item['slot']} • {activity.title}**")
+                    st.write(ai_copy[item["slot"]])
+                    st.caption(
+                        f"{activity.category} · {activity.vibe} · {activity.duration_hours:.1f}h · "
+                        f"{'Indoor backup' if activity.indoor else 'Outdoor lean'}"
+                    )
+                with col_b:
+                    st.metric("Price", format_currency(activity.price_eur))
 
 
 def render_ai_brief(ai_plan: AITripResponse) -> None:
-    st.markdown("<div class='section-title'>Client-facing concierge brief</div>", unsafe_allow_html=True)
-    st.markdown(
-        dedent(
-            f"""
-            <section class="copy-block">
-                <div class="copy-title">{ai_plan.brief.trip_hook}</div>
-                <div class="copy-text">{ai_plan.overview}</div>
-                <div class="copy-text" style="margin-top:0.8rem;">{ai_plan.brief.client_summary}</div>
-                <div class="copy-text" style="margin-top:0.8rem;"><strong>Why it works:</strong> {ai_plan.destination_fit}</div>
-                <div class="copy-text" style="margin-top:0.8rem;"><strong>Upgrade idea:</strong> {ai_plan.brief.concierge_upgrade}</div>
-            </section>
-            """
-        ),
-        unsafe_allow_html=True,
-    )
+    st.subheader("Client-facing concierge brief")
+    with st.container(border=True):
+        st.markdown(f"### {ai_plan.brief.trip_hook}")
+        st.write(ai_plan.overview)
+        st.write(ai_plan.brief.client_summary)
+        st.write(f"**Why it works:** {ai_plan.destination_fit}")
+        st.write(f"**Upgrade idea:** {ai_plan.brief.concierge_upgrade}")
 
     col1, col2, col3 = st.columns(3, gap="large")
     sections = [
@@ -917,7 +880,7 @@ def render_ai_brief(ai_plan: AITripResponse) -> None:
     ]
     for column, (title, items) in zip((col1, col2, col3), sections, strict=False):
         with column:
-            st.markdown(f"<div class='list-card-title'>{title}</div>", unsafe_allow_html=True)
+            st.markdown(f"**{title}**")
             for item in items:
                 st.write(f"- {item}")
 
@@ -927,11 +890,11 @@ def render_side_guides(destination: str, season: str, totals: dict[str, int], no
     packing_list = destination_info["packing"] + SEASON_PACKING[season]
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.markdown("<div class='section-title'>Packing and prep</div>", unsafe_allow_html=True)
+        st.subheader("Packing and prep")
         for item in packing_list:
             st.write(f"- {item}")
     with col2:
-        st.markdown("<div class='section-title'>Budget split</div>", unsafe_allow_html=True)
+        st.subheader("Budget split")
         st.write(f"- Lodging and food: {format_currency(totals['lodging_food'])}")
         st.write(f"- Activities and local transit: {format_currency(totals['experiences'])}")
         st.write(f"- Total trip estimate: {format_currency(totals['total'])}")
@@ -976,11 +939,26 @@ def main() -> None:
         index=1,
         help="Choose the tradeoff between cost, speed, and richness of the generated itinerary copy.",
     )
+    ollama_up, available_models, ollama_status = get_ollama_status()
     ai_mode_ready, ai_status = ollama_ready(selected_ai_mode)
     ai_mode_label = get_ollama_mode_profile(selected_ai_mode)["label"]
-    enable_ai = st.sidebar.toggle("Enable AI client-ready copy", value=ai_mode_ready, disabled=not ai_mode_ready)
+    selected_model = get_ollama_mode_profile(selected_ai_mode)["model"]
+    ai_enabled_default = False
+    enable_ai = st.sidebar.toggle(
+        "Enable AI client-ready copy",
+        value=ai_enabled_default,
+        disabled=not ollama_up,
+    )
     st.sidebar.caption(ai_mode_label)
-    st.sidebar.caption(ai_status)
+    st.sidebar.caption(ai_status if ollama_up else ollama_status)
+    if ollama_up:
+        st.sidebar.caption(f"Selected model: `{selected_model}`")
+        if available_models:
+            st.sidebar.caption(f"Installed models: {', '.join(available_models[:4])}")
+        if available_models and selected_model not in available_models:
+            st.sidebar.warning(
+                f"`{selected_model}` is not installed in Ollama yet. Pull it first or switch the mode."
+            )
     st.sidebar.caption(
         f"Run `ollama serve` and pull a model such as `qwen3:4b`. Timeout is currently {OLLAMA_TIMEOUT_SECONDS}s."
     )
@@ -1020,7 +998,7 @@ def main() -> None:
     )
     grounding_signature = json.dumps({"mode": selected_ai_mode, "payload": grounding_payload}, sort_keys=True)
     generate_ai = False
-    if enable_ai and ai_mode_ready:
+    if enable_ai and ollama_up and ai_mode_ready:
         if "trip_ai_cache" not in st.session_state:
             st.session_state.trip_ai_cache = {}
         ai_cache: dict[str, dict[str, Any]] = st.session_state.trip_ai_cache
