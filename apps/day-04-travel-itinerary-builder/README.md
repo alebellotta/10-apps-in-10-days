@@ -27,6 +27,6 @@ Or launch it from [run-day-04-travel-itinerary-builder.command](/Users/abellotta
 ## Notes
 
 - This MVP is offline-friendly and uses curated in-app destination/activity data.
-- To enable GenAI mode, set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` before running the app.
+- To enable GenAI mode, set `OPENAI_API_KEY` before running the app. The default AI model is `gpt-4.1-mini` for lower cost, and you can override it with `OPENAI_MODEL`.
 - Trip length is intentionally capped at 7 days to keep the itinerary readable.
 - The generated Markdown export is designed for easy copy/paste into docs, email, or chat.

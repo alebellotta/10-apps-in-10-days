@@ -129,7 +129,7 @@ SEASON_PACKING = {
     "Winter": ["Warm coat", "Thermal layer"],
 }
 
-DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 
 def inject_css() -> None:
@@ -497,6 +497,10 @@ def build_ai_grounding_payload(
     itinerary: list[dict[str, object]],
     totals: dict[str, int],
 ) -> dict[str, Any]:
+    compact_notes = notes.strip()[:280]
+    compact_goal = trip_goal.strip()[:160]
+    compact_must_do = must_do.strip()[:120]
+    compact_avoid = avoid.strip()[:120]
     return {
         "destination": destination,
         "country": DESTINATIONS[destination]["country"],
@@ -508,10 +512,10 @@ def build_ai_grounding_payload(
         "pace": pace,
         "interests": interests,
         "wants_nightlife": wants_nightlife,
-        "trip_goal": trip_goal,
-        "must_do": must_do,
-        "avoid": avoid,
-        "notes": notes,
+        "trip_goal": compact_goal,
+        "must_do": compact_must_do,
+        "avoid": compact_avoid,
+        "notes": compact_notes,
         "budget_snapshot_eur": totals,
         "destination_strengths": DESTINATIONS[destination]["best_for"],
         "suggested_days": [
@@ -525,7 +529,6 @@ def build_ai_grounding_payload(
                         "title": item["activity"].title,
                         "category": item["activity"].category,
                         "vibe": item["activity"].vibe,
-                        "description": item["activity"].description,
                         "price_eur": item["activity"].price_eur,
                     }
                     for item in day["items"]
@@ -559,14 +562,14 @@ def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int) -> 
         - Keep all output in English.
 
         Grounding data:
-        {json.dumps(grounding_payload, ensure_ascii=True, indent=2)}
+        {json.dumps(grounding_payload, ensure_ascii=True, separators=(",", ":"))}
         """
     ).strip()
 
     response = client.responses.create(
         model=DEFAULT_OPENAI_MODEL,
         input=prompt,
-        max_output_tokens=3200,
+        max_output_tokens=2200,
         response_format={
             "type": "json_schema",
             "json_schema": {
