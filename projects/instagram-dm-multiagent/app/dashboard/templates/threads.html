@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Threads</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Status</th>
+        <th>Priority</th>
+        <th>Last Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for thread in threads %}
+      {% set escalation = escalations.get(thread.id) %}
+      <tr>
+        <td><a href="/dashboard/threads/{{ thread.id }}">{{ thread.id }}</a></td>
+        <td>{{ thread.user_external_id }}</td>
+        <td><span class="badge badge-{{ thread.thread_status }}">{{ thread.thread_status }}</span></td>
+        <td>{{ escalation.priority if escalation else "-" }}</td>
+        <td>{{ thread.last_message_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

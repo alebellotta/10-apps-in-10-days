@@ -1,0 +1,104 @@
+:root {
+  --bg: #f5f1e8;
+  --panel: #fffef8;
+  --ink: #18212f;
+  --accent: #b85c38;
+  --border: #d9c8b0;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(184, 92, 56, 0.18), transparent 30%),
+    linear-gradient(180deg, #efe6d5, var(--bg));
+}
+
+.shell-header,
+.shell-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.shell-header {
+  display: flex;
+  gap: 1rem;
+}
+
+.shell-header a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 10px 30px rgba(24, 33, 47, 0.08);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #efe6d5;
+}
+
+.badge-auto_replied { background: #d8f0db; }
+.badge-escalated,
+.badge-pending_review { background: #ffe0c7; }
+.badge-failed { background: #ffd4d4; }
+
+.message {
+  padding: 0.8rem;
+  margin-bottom: 0.75rem;
+  border-radius: 14px;
+}
+
+.message.inbound {
+  background: #fff2e9;
+}
+
+.message.outbound {
+  background: #edf5ea;
+}
+
+.message-meta {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.notice,
+.draft-box {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  background: #fff6ef;
+}

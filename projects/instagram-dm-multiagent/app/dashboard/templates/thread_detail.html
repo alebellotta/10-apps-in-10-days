@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="layout">
+  <article class="panel">
+    <h1>Thread {{ thread.id }}</h1>
+    <p>Status: <span class="badge badge-{{ thread.thread_status }}">{{ thread.thread_status }}</span></p>
+    <p>Mode: {{ mode }}</p>
+    {% if escalation %}
+    <div class="notice">
+      <strong>Escalation:</strong> {{ escalation.reason }}<br />
+      <strong>Summary:</strong> {{ escalation.operator_summary }}
+    </div>
+    {% endif %}
+    {% if draft %}
+    <div class="draft-box">
+      <h2>Suggested Reply</h2>
+      <p>{{ draft }}</p>
+    </div>
+    {% endif %}
+  </article>
+  <article class="panel">
+    <h2>Messages</h2>
+    {% for message in messages %}
+    <div class="message {{ message.direction }}">
+      <div class="message-meta">{{ message.direction }} · {{ message.message_timestamp }}</div>
+      <div>{{ message.text }}</div>
+    </div>
+    {% endfor %}
+  </article>
+</section>
+{% endblock %}

@@ -4,11 +4,12 @@ Monorepo for ten production-style Python 3.11 + Streamlit MVPs, built one app pe
 
 ## Structure
 
-Each app lives in its own folder under `apps/` and is designed to run independently with:
+- `apps/` contains the Streamlit MVPs that belong to this monorepo
+- `launchers/` contains macOS double-click launchers for the Streamlit apps
+- `projects/` contains separate side projects that should not clutter the app root
+- `scripts/` contains shared local tooling
 
-```bash
-streamlit run app.py
-```
+Each app under `apps/` is designed to run independently with `streamlit run app.py`.
 
 ## Apps
 
@@ -35,13 +36,13 @@ Use Python 3.11. For any app:
 
 Each app README contains app-specific usage details and sample inputs.
 
-## Local launcher
+## Local Launchers
 
-For macOS, you can double-click either launcher to start an app locally:
+For macOS, you can double-click a launcher under `launchers/` to start an app locally:
 
-- [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command)
-- [run-day-02-classic-game.command](/Users/abellotta/Documents/New%20project/run-day-02-classic-game.command)
-- [run-day-03-serie-a-livescore.command](/Users/abellotta/Documents/New%20project/run-day-03-serie-a-livescore.command)
+- [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/launchers/run-day-01-idea-rater.command)
+- [run-day-02-classic-game.command](/Users/abellotta/Documents/New%20project/launchers/run-day-02-classic-game.command)
+- [run-day-03-serie-a-livescore.command](/Users/abellotta/Documents/New%20project/launchers/run-day-03-serie-a-livescore.command)
 - [run-day-04-travel-itinerary-builder.command](/Users/abellotta/Documents/New%20project/launchers/run-day-04-travel-itinerary-builder.command)
 
 Each launcher:
@@ -57,3 +58,7 @@ Each launcher:
 | Day | App | Live URL |
 | --- | --- | --- |
 | 01 | Idea Rater | [Run App](https://10-apps-in-10-days-b7xqnxqs8nqsmjzhva5cry.streamlit.app/) |
+
+## Side Projects
+
+Non-monorepo work is kept under `projects/` so the main app repo stays easier to scan.

@@ -21,6 +21,8 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+Or launch it from [run-day-03-serie-a-livescore.command](/Users/abellotta/Documents/New%20project/launchers/run-day-03-serie-a-livescore.command).
+
 ## Dati reali
 
 L'app prova a leggere dati reali da TheSportsDB usando:
