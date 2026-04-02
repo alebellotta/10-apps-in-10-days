@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from textwrap import dedent
+from typing import Any
 
 import streamlit as st
+from pydantic import BaseModel, Field
+
+try:
+    from openai import OpenAI
+except ImportError:  # pragma: no cover - handled in the UI when deps are missing
+    OpenAI = None
 
 
 @dataclass(frozen=True)
@@ -18,6 +27,35 @@ class Activity:
     morning_fit: bool
     evening_fit: bool
     description: str
+
+
+class AITripDay(BaseModel):
+    day_number: int = Field(ge=1, le=7)
+    title: str = Field(min_length=6, max_length=80)
+    morning_plan: str = Field(min_length=30, max_length=320)
+    afternoon_plan: str = Field(min_length=30, max_length=320)
+    evening_plan: str = Field(min_length=30, max_length=320)
+    dining_recommendation: str = Field(min_length=20, max_length=220)
+    logistics_tip: str = Field(min_length=20, max_length=220)
+    wow_moment: str = Field(min_length=20, max_length=220)
+    booking_priority: str = Field(min_length=20, max_length=220)
+
+
+class AITripBrief(BaseModel):
+    trip_hook: str = Field(min_length=20, max_length=180)
+    client_summary: str = Field(min_length=50, max_length=420)
+    personalization_notes: list[str] = Field(min_length=3, max_length=5)
+    booking_checklist: list[str] = Field(min_length=3, max_length=6)
+    budget_notes: list[str] = Field(min_length=2, max_length=4)
+    concierge_upgrade: str = Field(min_length=25, max_length=220)
+
+
+class AITripResponse(BaseModel):
+    overview: str = Field(min_length=60, max_length=500)
+    destination_fit: str = Field(min_length=30, max_length=220)
+    tone: str = Field(min_length=10, max_length=80)
+    days: list[AITripDay] = Field(min_length=1, max_length=7)
+    brief: AITripBrief
 
 
 DESTINATIONS: dict[str, dict[str, object]] = {
@@ -90,6 +128,8 @@ SEASON_PACKING = {
     "Autumn": ["Packable rain layer", "Closed-toe shoes"],
     "Winter": ["Warm coat", "Thermal layer"],
 }
+
+DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 
 
 def inject_css() -> None:
@@ -191,6 +231,10 @@ def inject_css() -> None:
             border-radius: 999px;
             padding: 0.45rem 0.75rem;
             font-size: 0.82rem;
+        }
+        .chip.ai-on {
+            background: rgba(240, 182, 90, 0.22);
+            border-color: rgba(240, 182, 90, 0.28);
         }
         .panel, .day-card, .hint-card {
             background: var(--card);
@@ -298,6 +342,35 @@ def inject_css() -> None:
             font-size: 0.78rem;
             border: 1px solid rgba(112, 130, 93, 0.18);
         }
+        .copy-block {
+            background: linear-gradient(180deg, rgba(31, 42, 47, 0.96), rgba(42, 52, 50, 0.94));
+            color: #fff8ef;
+            border-radius: 24px;
+            padding: 1.1rem;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: var(--shadow);
+        }
+        .copy-title {
+            font-family: "Fraunces", serif;
+            font-size: 1.2rem;
+            margin-bottom: 0.45rem;
+        }
+        .copy-text {
+            color: rgba(255, 248, 239, 0.88);
+            line-height: 1.55;
+        }
+        .list-card {
+            background: rgba(255, 252, 247, 0.75);
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            padding: 0.95rem;
+            box-shadow: var(--shadow);
+            height: 100%;
+        }
+        .list-card-title {
+            font-weight: 800;
+            margin-bottom: 0.45rem;
+        }
         @media (max-width: 900px) {
             .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .activity-row { grid-template-columns: 1fr; }
@@ -393,11 +466,117 @@ def format_currency(amount: int) -> str:
     return f"EUR {amount}"
 
 
+def openai_ready() -> tuple[bool, str]:
+    if OpenAI is None:
+        return False, "Install the `openai` package to enable AI itinerary generation."
+    if not os.getenv("OPENAI_API_KEY"):
+        return False, "Set `OPENAI_API_KEY` to enable AI concierge mode."
+    return True, f"AI concierge mode ready via {DEFAULT_OPENAI_MODEL}."
+
+
 def itinerary_totals(destination: str, budget_style: str, itinerary: list[dict[str, object]]) -> dict[str, int]:
     lodging_food = int(DESTINATIONS[destination]["daily_budget"][budget_style]) * len(itinerary)
     experiences = sum(int(day["daily_spend"]) for day in itinerary)
     total = lodging_food + experiences
     return {"lodging_food": lodging_food, "experiences": experiences, "total": total}
+
+
+def build_ai_grounding_payload(
+    destination: str,
+    neighborhood: str,
+    season: str,
+    travel_party: str,
+    budget_style: str,
+    pace: str,
+    interests: list[str],
+    wants_nightlife: bool,
+    trip_goal: str,
+    must_do: str,
+    avoid: str,
+    notes: str,
+    itinerary: list[dict[str, object]],
+    totals: dict[str, int],
+) -> dict[str, Any]:
+    return {
+        "destination": destination,
+        "country": DESTINATIONS[destination]["country"],
+        "airport": DESTINATIONS[destination]["airport"],
+        "base_neighborhood": neighborhood,
+        "season": season,
+        "travel_party": travel_party,
+        "budget_style": budget_style,
+        "pace": pace,
+        "interests": interests,
+        "wants_nightlife": wants_nightlife,
+        "trip_goal": trip_goal,
+        "must_do": must_do,
+        "avoid": avoid,
+        "notes": notes,
+        "budget_snapshot_eur": totals,
+        "destination_strengths": DESTINATIONS[destination]["best_for"],
+        "suggested_days": [
+            {
+                "day_number": index + 1,
+                "date": day["date"].isoformat(),
+                "theme": day["theme"],
+                "slots": [
+                    {
+                        "slot": item["slot"],
+                        "title": item["activity"].title,
+                        "category": item["activity"].category,
+                        "vibe": item["activity"].vibe,
+                        "description": item["activity"].description,
+                        "price_eur": item["activity"].price_eur,
+                    }
+                    for item in day["items"]
+                ],
+            }
+            for index, day in enumerate(itinerary)
+        ],
+    }
+
+
+def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int) -> AITripResponse:
+    if OpenAI is None:
+        raise RuntimeError("The openai package is not installed.")
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    prompt = dedent(
+        f"""
+        You are a premium travel planner preparing client-ready itinerary copy.
+
+        Create a polished itinerary for exactly {day_count} day(s). Use the supplied grounding data faithfully.
+        Keep the plan realistic, appealing, and commercially useful. The tone should feel like a boutique agency:
+        confident, warm, specific, and high-end without sounding generic.
+
+        Requirements:
+        - Respect the destination, pace, budget style, season, and travel-party context.
+        - Use the suggested activities as grounding, but elevate them into client-facing prose.
+        - Make each day feel distinct and intentional.
+        - Include practical logistics and booking advice.
+        - Do not invent flights, exact restaurant reservations, or impossible transfers.
+        - If the user noted must-do or avoid preferences, reflect them clearly.
+        - Keep all output in English.
+
+        Grounding data:
+        {json.dumps(grounding_payload, ensure_ascii=True, indent=2)}
+        """
+    ).strip()
+
+    response = client.responses.create(
+        model=DEFAULT_OPENAI_MODEL,
+        input=prompt,
+        max_output_tokens=3200,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": AITripResponse.__name__,
+                "schema": AITripResponse.model_json_schema(),
+                "strict": True,
+            },
+        },
+    )
+    return AITripResponse.model_validate(json.loads(response.output_text))
 
 
 def build_markdown_export(
@@ -443,8 +622,76 @@ def build_markdown_export(
     return "\n".join(lines)
 
 
-def render_hero(destination: str, trip_days: int, travel_party: str, best_for: list[str]) -> None:
-    chips = "".join(f"<span class='chip'>{label}</span>" for label in [f"{trip_days} days", travel_party, *best_for[:3]])
+def build_ai_markdown_export(
+    destination: str,
+    neighborhood: str,
+    season: str,
+    travel_party: str,
+    budget_style: str,
+    totals: dict[str, int],
+    ai_plan: AITripResponse,
+) -> str:
+    lines = [
+        f"# {destination} concierge itinerary",
+        "",
+        f"- Base area: {neighborhood}",
+        f"- Season: {season}",
+        f"- Travel party: {travel_party}",
+        f"- Budget style: {budget_style}",
+        f"- Estimated total: {format_currency(totals['total'])}",
+        "",
+        "## Overview",
+        ai_plan.overview,
+        "",
+        "## Why this trip fits",
+        ai_plan.destination_fit,
+        "",
+        "## Daily plan",
+    ]
+    for day in ai_plan.days:
+        lines.extend(
+            [
+                "",
+                f"### Day {day.day_number} - {day.title}",
+                f"- Morning: {day.morning_plan}",
+                f"- Afternoon: {day.afternoon_plan}",
+                f"- Evening: {day.evening_plan}",
+                f"- Dining: {day.dining_recommendation}",
+                f"- Logistics: {day.logistics_tip}",
+                f"- Wow moment: {day.wow_moment}",
+                f"- Booking priority: {day.booking_priority}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Concierge brief",
+            f"- Hook: {ai_plan.brief.trip_hook}",
+            f"- Client summary: {ai_plan.brief.client_summary}",
+            "",
+            "## Personalization notes",
+            *[f"- {item}" for item in ai_plan.brief.personalization_notes],
+            "",
+            "## Booking checklist",
+            *[f"- {item}" for item in ai_plan.brief.booking_checklist],
+            "",
+            "## Budget notes",
+            *[f"- {item}" for item in ai_plan.brief.budget_notes],
+            "",
+            "## Upgrade idea",
+            ai_plan.brief.concierge_upgrade,
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_hero(destination: str, trip_days: int, travel_party: str, best_for: list[str], ai_enabled: bool) -> None:
+    chip_items = [f"{trip_days} days", travel_party, *best_for[:3]]
+    if ai_enabled:
+        chip_items.insert(0, "AI concierge")
+    chips = "".join(
+        f"<span class='chip{' ai-on' if label == 'AI concierge' else ''}'>{label}</span>" for label in chip_items
+    )
     st.markdown(
         f"""
         <section class="hero">
@@ -452,7 +699,7 @@ def render_hero(destination: str, trip_days: int, travel_party: str, best_for: l
             <div class="hero-title">Build a trip plan that feels considered, not copy-pasted.</div>
             <div class="hero-copy">
                 Turn a destination, pace, and travel style into a day-by-day city itinerary with timing ideas,
-                budget guidance, and a copyable Markdown brief for easy sharing.
+                budget guidance, and a client-ready concierge brief powered by structured GenAI.
             </div>
             <div class="hero-strip">{chips}</div>
         </section>
@@ -494,12 +741,19 @@ def render_metrics(destination: str, season: str, itinerary: list[dict[str, obje
     )
 
 
-def render_itinerary(itinerary: list[dict[str, object]]) -> None:
+def render_itinerary(itinerary: list[dict[str, object]], ai_plan: AITripResponse | None = None) -> None:
     st.markdown("<div class='section-title'>Day-by-day itinerary</div>", unsafe_allow_html=True)
-    for day in itinerary:
+    ai_days = {day.day_number: day for day in ai_plan.days} if ai_plan else {}
+    for index, day in enumerate(itinerary, start=1):
+        ai_day = ai_days.get(index)
         rows = []
         for item in day["items"]:
             activity: Activity = item["activity"]
+            ai_copy = {
+                "Morning": ai_day.morning_plan if ai_day else activity.description,
+                "Afternoon": ai_day.afternoon_plan if ai_day else activity.description,
+                "Evening": ai_day.evening_plan if ai_day else activity.description,
+            }
             rows.append(
                 dedent(
                     f"""
@@ -507,7 +761,7 @@ def render_itinerary(itinerary: list[dict[str, object]]) -> None:
                     <div class="slot">{item['slot']}</div>
                     <div>
                         <div class="activity-title">{activity.title}</div>
-                        <div class="activity-meta">{activity.description}</div>
+                        <div class="activity-meta">{ai_copy[item['slot']]}</div>
                         <div class="tag-row">
                             <span class="tag">{activity.category}</span>
                             <span class="tag">{activity.vibe}</span>
@@ -524,14 +778,49 @@ def render_itinerary(itinerary: list[dict[str, object]]) -> None:
             dedent(
                 f"""
             <section class="day-card">
-                <div class="day-title">{day['theme']}</div>
+                <div class="day-title">{ai_day.title if ai_day else day['theme']}</div>
                 <div class="day-date">{day['date'].strftime('%A, %d %B %Y')}</div>
+                {'<div class="activity-meta" style="margin-bottom:0.75rem;">' + ai_day.wow_moment + '</div>' if ai_day else ''}
                 {''.join(rows)}
             </section>
             """
             ).strip(),
             unsafe_allow_html=True,
         )
+
+
+def render_ai_brief(ai_plan: AITripResponse) -> None:
+    st.markdown("<div class='section-title'>Client-facing concierge brief</div>", unsafe_allow_html=True)
+    st.markdown(
+        dedent(
+            f"""
+            <section class="copy-block">
+                <div class="copy-title">{ai_plan.brief.trip_hook}</div>
+                <div class="copy-text">{ai_plan.overview}</div>
+                <div class="copy-text" style="margin-top:0.8rem;">{ai_plan.brief.client_summary}</div>
+                <div class="copy-text" style="margin-top:0.8rem;"><strong>Why it works:</strong> {ai_plan.destination_fit}</div>
+                <div class="copy-text" style="margin-top:0.8rem;"><strong>Upgrade idea:</strong> {ai_plan.brief.concierge_upgrade}</div>
+            </section>
+            """
+        ),
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3 = st.columns(3, gap="large")
+    sections = [
+        ("Personalization notes", ai_plan.brief.personalization_notes),
+        ("Booking checklist", ai_plan.brief.booking_checklist),
+        ("Budget notes", ai_plan.brief.budget_notes),
+    ]
+    for column, (title, items) in zip((col1, col2, col3), sections, strict=False):
+        with column:
+            st.markdown(
+                f"<div class='list-card'><div class='list-card-title'>{title}</div>",
+                unsafe_allow_html=True,
+            )
+            for item in items:
+                st.write(f"- {item}")
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_side_guides(destination: str, season: str, totals: dict[str, int], notes: str) -> None:
@@ -570,12 +859,19 @@ def main() -> None:
     season = st.sidebar.selectbox("Season", ["Spring", "Summer", "Autumn", "Winter"])
     travel_party = st.sidebar.selectbox("Travel party", ["Solo", "Couple", "Friends", "Family"])
     neighborhood = st.sidebar.text_input("Base neighborhood", value="City center")
+    trip_goal = st.sidebar.text_input("Trip goal", value="A polished city break with standout food, clear pacing, and memorable highlights")
+    must_do = st.sidebar.text_input("Must-do highlight", placeholder="Example: sunset rooftop drink, one iconic museum, local market")
+    avoid = st.sidebar.text_input("Avoid", placeholder="Example: packed nightlife, too many museums, long taxi hops")
     interests = st.sidebar.multiselect(
         "Interests",
         ["history", "food", "culture", "architecture", "art", "relaxation", "beach", "nightlife"],
         default=list(DESTINATIONS[destination]["best_for"][:3]),
     )
     wants_nightlife = st.sidebar.toggle("Bias one evening toward nightlife", value=travel_party in {"Couple", "Friends"})
+    st.sidebar.markdown("### AI concierge")
+    ai_mode_ready, ai_status = openai_ready()
+    enable_ai = st.sidebar.toggle("Enable AI client-ready copy", value=ai_mode_ready, disabled=not ai_mode_ready)
+    st.sidebar.caption(ai_status)
     notes = st.sidebar.text_area(
         "Trip notes",
         placeholder="Example: arriving late on day 1, prefer one museum max per day, vegetarian-friendly stops.",
@@ -584,7 +880,7 @@ def main() -> None:
     trip_days = trip_length(start_date, end_date)
     errors = validate_trip_inputs(start_date, end_date, interests, trip_days)
 
-    render_hero(destination, max(trip_days, 1), travel_party, list(DESTINATIONS[destination]["best_for"]))
+    render_hero(destination, max(trip_days, 1), travel_party, list(DESTINATIONS[destination]["best_for"]), enable_ai)
 
     if errors:
         for error in errors:
@@ -593,11 +889,47 @@ def main() -> None:
 
     itinerary = build_daily_plan(destination, start_date, end_date, interests, pace, budget_style, wants_nightlife)
     totals = itinerary_totals(destination, budget_style, itinerary)
+    ai_plan: AITripResponse | None = None
+    grounding_payload = build_ai_grounding_payload(
+        destination=destination,
+        neighborhood=neighborhood,
+        season=season,
+        travel_party=travel_party,
+        budget_style=budget_style,
+        pace=pace,
+        interests=interests,
+        wants_nightlife=wants_nightlife,
+        trip_goal=trip_goal,
+        must_do=must_do,
+        avoid=avoid,
+        notes=notes,
+        itinerary=itinerary,
+        totals=totals,
+    )
+    grounding_signature = json.dumps(grounding_payload, sort_keys=True)
+    generate_ai = False
+    if enable_ai and ai_mode_ready:
+        if "trip_ai_cache" not in st.session_state:
+            st.session_state.trip_ai_cache = {}
+        ai_cache: dict[str, dict[str, Any]] = st.session_state.trip_ai_cache
+        generate_ai = st.sidebar.button("Generate AI concierge itinerary", use_container_width=True)
+        if grounding_signature in ai_cache:
+            ai_plan = AITripResponse.model_validate(ai_cache[grounding_signature])
+        if generate_ai:
+            with st.spinner("Generating a client-ready itinerary..."):
+                try:
+                    ai_plan = generate_ai_trip_plan(grounding_payload, len(itinerary))
+                    ai_cache[grounding_signature] = ai_plan.model_dump()
+                except Exception as exc:
+                    st.warning(f"AI generation failed, so the app is showing the curated fallback plan instead. Details: {exc}")
+
     render_metrics(destination, season, itinerary, totals)
 
     left, right = st.columns([1.8, 1.0], gap="large")
     with left:
-        render_itinerary(itinerary)
+        render_itinerary(itinerary, ai_plan=ai_plan)
+        if ai_plan:
+            render_ai_brief(ai_plan)
     with right:
         st.markdown("<div class='section-title'>Planner summary</div>", unsafe_allow_html=True)
         st.markdown(
@@ -606,23 +938,50 @@ def main() -> None:
                 <div class="hint-card">
                     <strong>Base area</strong><br>{neighborhood}<br><br>
                     <strong>Destination angle</strong><br>{destination} is strongest for {", ".join(DESTINATIONS[destination]["best_for"][:3])}.<br><br>
-                    <strong>Trip rhythm</strong><br>{pace} pace with {PACE_TARGETS[pace]} structured blocks per day.
+                    <strong>Trip rhythm</strong><br>{pace} pace with {PACE_TARGETS[pace]} structured blocks per day.<br><br>
+                    <strong>Client objective</strong><br>{trip_goal}
                 </div>
                 """
             ),
             unsafe_allow_html=True,
         )
+        if ai_plan:
+            st.markdown("<div class='section-title'>AI planning lens</div>", unsafe_allow_html=True)
+            st.markdown(
+                dedent(
+                    f"""
+                    <div class="panel">
+                        <strong>Tone</strong><br>{ai_plan.tone}<br><br>
+                        <strong>Trip fit</strong><br>{ai_plan.destination_fit}<br><br>
+                        <strong>Upgrade angle</strong><br>{ai_plan.brief.concierge_upgrade}
+                    </div>
+                    """
+                ),
+                unsafe_allow_html=True,
+            )
         render_side_guides(destination, season, totals, notes)
 
-    markdown_export = build_markdown_export(
-        destination=destination,
-        neighborhood=neighborhood,
-        season=season,
-        travel_party=travel_party,
-        budget_style=budget_style,
-        itinerary=itinerary,
-        totals=totals,
-        notes=notes,
+    markdown_export = (
+        build_ai_markdown_export(
+            destination=destination,
+            neighborhood=neighborhood,
+            season=season,
+            travel_party=travel_party,
+            budget_style=budget_style,
+            totals=totals,
+            ai_plan=ai_plan,
+        )
+        if ai_plan
+        else build_markdown_export(
+            destination=destination,
+            neighborhood=neighborhood,
+            season=season,
+            travel_party=travel_party,
+            budget_style=budget_style,
+            itinerary=itinerary,
+            totals=totals,
+            notes=notes,
+        )
     )
 
     st.markdown("<div class='section-title'>Shareable export</div>", unsafe_allow_html=True)
