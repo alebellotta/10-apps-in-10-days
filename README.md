@@ -17,7 +17,7 @@ streamlit run app.py
 | 01 | Idea Rater | `apps/day-01-idea-rater` | Built |
 | 02 | Classic Game | `apps/day-02-classic-game` | Built |
 | 03 | Serie A LiveScore | `apps/day-03-serie-a-livescore` | Built |
-| 04 | Travel Itinerary Builder | `apps/day-04-travel-itinerary-builder` | Planned |
+| 04 | Travel Itinerary Builder | `apps/day-04-travel-itinerary-builder` | Built |
 | 05 | Contract Risk Scanner | `apps/day-05-contract-risk-scanner` | Planned |
 | 06 | YouTube Shorts Planner | `apps/day-06-youtube-shorts-planner` | Planned |
 | 07 | Process Mapper | `apps/day-07-process-mapper` | Planned |
@@ -42,6 +42,7 @@ For macOS, you can double-click either launcher to start an app locally:
 - [run-day-01-idea-rater.command](/Users/abellotta/Documents/New%20project/run-day-01-idea-rater.command)
 - [run-day-02-classic-game.command](/Users/abellotta/Documents/New%20project/run-day-02-classic-game.command)
 - [run-day-03-serie-a-livescore.command](/Users/abellotta/Documents/New%20project/run-day-03-serie-a-livescore.command)
+- [run-day-04-travel-itinerary-builder.command](/Users/abellotta/Documents/New%20project/launchers/run-day-04-travel-itinerary-builder.command)
 
 Each launcher:
 
