@@ -86,192 +86,457 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;700&display=swap');
         :root {
-            --bg: #f4f1e8;
-            --card: #fffaf1;
-            --line: #ded4c2;
-            --text: #181613;
-            --muted: #766d5e;
-            --accent: #d74f2a;
-            --accent-dark: #aa3418;
-            --green: #177245;
-            --amber: #d28b10;
+            --bg: #09131b;
+            --bg-soft: #0f1d29;
+            --card: rgba(15, 29, 41, 0.92);
+            --card-strong: #132433;
+            --line: rgba(143, 172, 198, 0.16);
+            --text: #eff7ff;
+            --muted: #8ba2b7;
+            --accent: #ff6b35;
+            --accent-dark: #ffae8f;
+            --green: #23c16b;
+            --amber: #ffb020;
+            --red: #ff5d73;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
         }
         .stApp {
             background:
-                radial-gradient(circle at top right, rgba(215, 79, 42, 0.12), transparent 22%),
-                linear-gradient(180deg, #f8f4ea 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(255, 107, 53, 0.18), transparent 26%),
+                radial-gradient(circle at 85% 10%, rgba(35, 193, 107, 0.11), transparent 18%),
+                linear-gradient(180deg, #071018 0%, var(--bg) 100%);
             color: var(--text);
+            font-family: "Barlow", sans-serif;
         }
         .block-container {
-            max-width: 1180px;
-            padding-top: 2rem;
+            max-width: 1240px;
+            padding-top: 1.2rem;
             padding-bottom: 3rem;
         }
+        h1, h2, h3 {
+            font-family: "Space Grotesk", sans-serif;
+        }
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #0d1822 0%, #0a141d 100%);
+            border-right: 1px solid var(--line);
+        }
+        [data-testid="stSidebar"] * {
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.78rem;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+        .brand-mark {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent) 0%, #ff905f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            box-shadow: 0 14px 28px rgba(255, 107, 53, 0.25);
+        }
+        .brand-title {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .brand-subtitle {
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+        .topbar-chip-row {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .topbar-chip {
+            background: rgba(17, 32, 46, 0.88);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .topbar-chip strong {
+            color: var(--text);
+        }
         .hero {
-            background: linear-gradient(135deg, #181613 0%, #31271f 65%, #523827 100%);
-            color: #fff6eb;
+            background:
+                linear-gradient(140deg, rgba(255, 107, 53, 0.95) 0%, rgba(255, 124, 74, 0.88) 35%, rgba(19, 36, 51, 0.97) 100%);
+            color: white;
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-            padding: 1.4rem 1.5rem;
-            margin-bottom: 1.2rem;
-            box-shadow: 0 24px 50px rgba(24, 22, 19, 0.18);
+            border-radius: 30px;
+            padding: 1.55rem 1.6rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -40px;
+            top: -40px;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 65%);
         }
         .hero-kicker {
-            letter-spacing: 0.18em;
-            font-size: 0.74rem;
+            letter-spacing: 0.2em;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            opacity: 0.78;
+            opacity: 0.84;
             margin-bottom: 0.4rem;
         }
         .hero-title {
-            font-size: 2.3rem;
-            line-height: 1;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 2.7rem;
+            line-height: 0.95;
             font-weight: 800;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.65rem;
+            max-width: 720px;
+            position: relative;
+            z-index: 1;
         }
         .hero-subtitle {
-            color: #e7d8c6;
-            max-width: 700px;
-            font-size: 0.98rem;
+            color: rgba(255, 247, 241, 0.9);
+            max-width: 690px;
+            font-size: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-meta {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-meta-card {
+            background: rgba(8, 16, 24, 0.24);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 0.75rem 0.9rem;
+            min-width: 148px;
+        }
+        .hero-meta-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.7);
+        }
+        .hero-meta-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-top: 0.15rem;
         }
         .strip {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.8rem;
-            margin: 1rem 0 1.4rem;
+            gap: 0.9rem;
+            margin: 0.9rem 0 1.4rem;
         }
-        .metric-card, .match-card, .news-card {
+        .metric-card, .match-card, .news-card, .surface-card {
             background: var(--card);
             border: 1px solid var(--line);
-            border-radius: 20px;
+            border-radius: 22px;
             padding: 1rem;
+            box-shadow: var(--shadow);
         }
         .metric-label {
             font-size: 0.78rem;
             text-transform: uppercase;
             color: var(--muted);
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
         }
         .metric-value {
-            font-size: 1.8rem;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 2rem;
             font-weight: 800;
             margin-top: 0.3rem;
         }
         .metric-note {
             color: var(--muted);
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             margin-top: 0.2rem;
         }
         .section-title {
-            font-size: 1.15rem;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.1rem;
             font-weight: 800;
-            margin: 0.4rem 0 0.9rem;
+            margin: 0.2rem 0 0.9rem;
+            letter-spacing: -0.02em;
+        }
+        .subsection-label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.11em;
+            font-size: 0.74rem;
+            margin: 0.15rem 0 0.55rem;
         }
         .match-grid {
             display: grid;
             gap: 0.9rem;
         }
+        .match-card {
+            padding: 1.05rem;
+            background: linear-gradient(180deg, rgba(18, 35, 49, 0.98), rgba(11, 23, 33, 0.98));
+        }
         .match-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.85rem;
+            margin-bottom: 1rem;
         }
         .badge {
             display: inline-block;
-            padding: 0.28rem 0.55rem;
+            padding: 0.32rem 0.6rem;
             border-radius: 999px;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 800;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.12em;
         }
         .badge-live {
-            background: rgba(215, 79, 42, 0.14);
-            color: var(--accent-dark);
+            background: rgba(255, 107, 53, 0.14);
+            color: #ffad8b;
         }
         .badge-ft {
-            background: rgba(23, 114, 69, 0.14);
-            color: var(--green);
+            background: rgba(35, 193, 107, 0.14);
+            color: #83f0af;
         }
         .badge-upcoming, .badge-ht {
-            background: rgba(210, 139, 16, 0.16);
-            color: var(--amber);
+            background: rgba(255, 176, 32, 0.14);
+            color: #ffd370;
         }
         .teams-row {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.55rem;
         }
-        .team {
-            font-size: 1.02rem;
-            font-weight: 700;
+        .team-block {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
         }
-        .team.away {
+        .team-block.away {
+            justify-content: flex-end;
             text-align: right;
         }
+        .team-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            object-fit: contain;
+            padding: 0.35rem;
+            flex: 0 0 auto;
+        }
+        .team-badge-fallback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #193243 0%, #274a61 100%);
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+        .team {
+            font-size: 1.04rem;
+            font-weight: 700;
+        }
+        .team-meta {
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 0.1rem;
+        }
+        .score-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         .score {
-            font-size: 1.9rem;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 2.35rem;
             font-weight: 900;
-            min-width: 92px;
+            min-width: 110px;
             text-align: center;
+            letter-spacing: -0.04em;
+        }
+        .score-sub {
+            color: var(--muted);
+            font-size: 0.76rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
         .meta {
-            margin-top: 0.8rem;
+            margin-top: 0.95rem;
             color: var(--muted);
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             display: flex;
             justify-content: space-between;
             gap: 0.75rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding-top: 0.8rem;
         }
         .pill-row {
             display: flex;
             gap: 0.35rem;
-            margin-top: 0.7rem;
+            margin-top: 0.85rem;
             flex-wrap: wrap;
         }
         .pill {
-            width: 28px;
+            min-width: 28px;
             height: 28px;
-            border-radius: 50%;
+            border-radius: 999px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 0.75rem;
             font-weight: 800;
             color: white;
+            padding: 0 0.5rem;
         }
         .pill-w { background: #177245; }
-        .pill-d { background: #8d806d; }
+        .pill-d { background: #55677a; }
         .pill-l { background: #b5382e; }
         .detail-card {
-            background: rgba(255,250,241,0.9);
+            background: linear-gradient(180deg, rgba(19, 36, 51, 0.98), rgba(10, 20, 29, 0.98));
             border: 1px solid var(--line);
-            border-radius: 22px;
-            padding: 1.1rem;
+            border-radius: 24px;
+            padding: 1.15rem;
             margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+        .detail-vs {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 0.75rem;
+        }
+        .detail-team {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .detail-team.away {
+            justify-content: flex-end;
+        }
+        .detail-team-name {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .detail-team.away .detail-team-name {
+            text-align: right;
         }
         .detail-score {
-            font-size: 2.5rem;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 2.7rem;
             font-weight: 900;
             text-align: center;
-            margin: 0.4rem 0 0.2rem;
+            line-height: 1;
         }
         .timeline-event {
             display: flex;
             justify-content: space-between;
             gap: 1rem;
-            padding: 0.55rem 0;
-            border-bottom: 1px solid rgba(222, 212, 194, 0.7);
+            padding: 0.7rem 0.2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             font-size: 0.93rem;
         }
         .timeline-event:last-child {
             border-bottom: none;
         }
+        .timeline-minute {
+            color: var(--accent-dark);
+            font-weight: 700;
+            min-width: 52px;
+        }
+        .timeline-summary {
+            color: var(--text);
+            text-align: right;
+        }
+        .stats-grid {
+            display: grid;
+            gap: 0.65rem;
+        }
+        .stat-row {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 0.75rem 0.85rem;
+        }
+        .stat-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.84rem;
+            margin-bottom: 0.45rem;
+        }
+        .stat-label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .stat-values {
+            color: var(--text);
+            font-weight: 700;
+        }
+        .stat-bar {
+            position: relative;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+        }
+        .stat-home {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, var(--accent), #ff955f);
+        }
+        .stat-away {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #2bc8ff, #6be0ff);
+        }
         .news-card h4 {
             margin: 0 0 0.35rem;
             font-size: 1rem;
+            font-family: "Space Grotesk", sans-serif;
         }
         .news-card p {
             margin: 0;
@@ -279,21 +544,39 @@ def inject_css() -> None:
             font-size: 0.9rem;
         }
         .api-note {
-            background: rgba(255, 250, 241, 0.78);
-            border: 1px solid var(--line);
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.2);
             border-radius: 18px;
             padding: 0.9rem 1rem;
             color: var(--muted);
             margin-bottom: 1rem;
         }
         div[data-testid="stDataFrame"] div[role="table"] {
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             border: 1px solid var(--line);
+            background: rgba(15, 29, 41, 0.92);
         }
         @media (max-width: 900px) {
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
             .strip {
                 grid-template-columns: 1fr 1fr;
+            }
+            .hero-title {
+                font-size: 2.05rem;
+            }
+            .teams-row, .detail-vs {
+                grid-template-columns: 1fr;
+            }
+            .team-block.away, .detail-team.away {
+                justify-content: flex-start;
+                text-align: left;
+            }
+            .timeline-summary {
+                text-align: left;
             }
         }
         </style>
@@ -468,10 +751,57 @@ def form_markup(form: tuple[str, ...]) -> str:
     return "<div class='pill-row'>" + "".join(cells) + "</div>"
 
 
-def match_card(match: dict[str, Any]) -> str:
+def team_badge_markup(team: str, team_badges: dict[str, str]) -> str:
+    badge_url = team_badges.get(team)
+    if badge_url:
+        return f'<img class="team-badge" src="{badge_url}" alt="{team} badge" />'
+    initials = "".join(part[0] for part in team.split()[:2]).upper()[:2]
+    return f'<span class="team-badge-fallback">{initials}</span>'
+
+
+def parse_ratio(value: str) -> float | None:
+    if value in {"-", ""}:
+        return None
+    cleaned = str(value).replace("%", "").strip()
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def stat_rows_markup(stat_values: dict[str, tuple[str, str]]) -> str:
+    rows = []
+    for label, values in list(stat_values.items())[:4]:
+        home_raw, away_raw = values
+        home = parse_ratio(home_raw)
+        away = parse_ratio(away_raw)
+        if home is not None and away is not None and (home + away) > 0:
+            home_width = max(12.0, round((home / (home + away)) * 100, 1))
+            away_width = max(12.0, round((away / (home + away)) * 100, 1))
+        else:
+            home_width = away_width = 50.0
+        rows.append(
+            f"""
+            <div class="stat-row">
+              <div class="stat-head">
+                <span class="stat-label">{label}</span>
+                <span class="stat-values">{home_raw} | {away_raw}</span>
+              </div>
+              <div class="stat-bar">
+                <span class="stat-home" style="width:{home_width}%;"></span>
+                <span class="stat-away" style="width:{away_width}%;"></span>
+              </div>
+            </div>
+            """
+        )
+    return "<div class='stats-grid'>" + "".join(rows) + "</div>"
+
+
+def match_card(match: dict[str, Any], team_badges: dict[str, str]) -> str:
     home_score, away_score = match["score"]
     score = f"{home_score} - {away_score}" if match["status"] != "UPCOMING" else match["kickoff"]
     round_label = f"Giornata {match['round']}" if match.get("round") else match["competition"]
+    score_sub = "live" if match["status"] in {"LIVE", "HT"} else ("kickoff" if match["status"] == "UPCOMING" else "finale")
     return f"""
     <div class="match-card">
       <div class="match-top">
@@ -482,9 +812,24 @@ def match_card(match: dict[str, Any]) -> str:
         <span class="badge {status_class(match["status"])}">{match["status"]}</span>
       </div>
       <div class="teams-row">
-        <div class="team">{match["home"]}</div>
-        <div class="score">{score}</div>
-        <div class="team away">{match["away"]}</div>
+        <div class="team-block">
+          {team_badge_markup(match["home"], team_badges)}
+          <div>
+            <div class="team">{match["home"]}</div>
+            <div class="team-meta">Casa</div>
+          </div>
+        </div>
+        <div class="score-stack">
+          <div class="score">{score}</div>
+          <div class="score-sub">{score_sub}</div>
+        </div>
+        <div class="team-block away">
+          <div>
+            <div class="team">{match["away"]}</div>
+            <div class="team-meta">Trasferta</div>
+          </div>
+          {team_badge_markup(match["away"], team_badges)}
+        </div>
       </div>
       <div class="meta">
         <span>{match["venue"]}</span>
@@ -521,7 +866,14 @@ def load_real_data() -> dict[str, Any]:
     for event in (next_events.get("events") or [])[:10]:
         matches.append(normalize_event(event))
 
-    matches.sort(key=lambda match: ((match["status"] != "LIVE"), (match["status"] != "HT"), match.get("date") or "", match["kickoff"]))
+    matches.sort(
+        key=lambda match: (
+            (match["status"] != "LIVE"),
+            (match["status"] != "HT"),
+            match.get("date") or "",
+            match["kickoff"],
+        )
+    )
 
     standings_rows = table_data.get("table")
     standings = build_table_from_rows(standings_rows)
@@ -566,10 +918,33 @@ def main() -> None:
     data = load_real_data()
     matches = data["matches"]
     standings = data["standings"]
+    team_badges = data["team_badges"]
 
     live_count = sum(1 for match in matches if match["status"] == "LIVE")
     completed_count = sum(1 for match in matches if match["status"] == "FT")
     teams = sorted({match["home"] for match in matches} | {match["away"] for match in matches})
+    next_match = next((match for match in matches if match["status"] == "UPCOMING"), None)
+    live_match = next((match for match in matches if match["status"] in {"LIVE", "HT"}), None)
+
+    st.markdown(
+        f"""
+        <div class="topbar">
+          <div class="brand-lockup">
+            <div class="brand-mark">A</div>
+            <div>
+              <div class="brand-title">Serie A Scoreboard</div>
+              <div class="brand-subtitle">Interfaccia rifatta per sembrare un vero score center sportivo.</div>
+            </div>
+          </div>
+          <div class="topbar-chip-row">
+            <div class="topbar-chip">Season <strong>{data["season"]}</strong></div>
+            <div class="topbar-chip">Round <strong>{data["current_round"] or "Current"}</strong></div>
+            <div class="topbar-chip">API <strong>{"Live" if data["api_ok"] else "Fallback"}</strong></div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         f"""
@@ -579,6 +954,20 @@ def main() -> None:
           <div class="hero-subtitle">
             Risultati e calendario reali via TheSportsDB per la stagione {data["season"]}.
             Se imposti <code>THESPORTSDB_API_KEY</code>, l'app usa quella chiave; altrimenti prova con la chiave free pubblica.
+          </div>
+          <div class="hero-meta">
+            <div class="hero-meta-card">
+              <div class="hero-meta-label">Match live</div>
+              <div class="hero-meta-value">{live_count}</div>
+            </div>
+            <div class="hero-meta-card">
+              <div class="hero-meta-label">Top live game</div>
+              <div class="hero-meta-value">{f"{live_match['home']} vs {live_match['away']}" if live_match else "Nessuna live"}</div>
+            </div>
+            <div class="hero-meta-card">
+              <div class="hero-meta-label">Next kickoff</div>
+              <div class="hero-meta-value">{f"{next_match['home']} - {next_match['away']}" if next_match else "Calendario completo"}</div>
+            </div>
           </div>
         </div>
         """,
@@ -648,13 +1037,13 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    scoreboard_col, detail_col = st.columns((1.2, 0.8), gap="large")
+    scoreboard_col, detail_col = st.columns((1.22, 0.78), gap="large")
 
     with scoreboard_col:
         st.markdown("<div class='section-title'>Partite del Giorno / Ultimi Aggiornamenti</div>", unsafe_allow_html=True)
         if filtered_matches:
             st.markdown(
-                "<div class='match-grid'>" + "".join(match_card(match) for match in filtered_matches) + "</div>",
+                "<div class='match-grid'>" + "".join(match_card(match, team_badges) for match in filtered_matches) + "</div>",
                 unsafe_allow_html=True,
             )
         else:
@@ -673,31 +1062,39 @@ def main() -> None:
             f"""
             <div class="detail-card">
               <div class="metric-label">{selected_match["competition"]} • {selected_match["venue"]}</div>
-              <div class="detail-score">{selected_match["home"]} {home_score} - {away_score} {selected_match["away"]}</div>
-              <div class="metric-note" style="text-align:center;">{selected_match["minute"]} • calcio d'inizio {selected_match["kickoff"]}</div>
+              <div class="detail-vs">
+                <div class="detail-team">
+                  {team_badge_markup(selected_match["home"], team_badges)}
+                  <div class="detail-team-name">{selected_match["home"]}</div>
+                </div>
+                <div class="detail-score">{home_score} - {away_score}</div>
+                <div class="detail-team away">
+                  <div class="detail-team-name">{selected_match["away"]}</div>
+                  {team_badge_markup(selected_match["away"], team_badges)}
+                </div>
+              </div>
+              <div class="metric-note" style="text-align:center; margin-top:0.7rem;">{selected_match["minute"]} • calcio d'inizio {selected_match["kickoff"]}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.caption("Timeline")
+        st.markdown("<div class='subsection-label'>Timeline</div>", unsafe_allow_html=True)
         timeline = detail.get("timeline") or [(minute, f"{team} • {scorer}") for minute, team, scorer in selected_match["events"]]
         if timeline:
-            for minute, summary in timeline:
-                st.markdown(
-                    f"<div class='timeline-event'><span>{minute}</span><span>{summary}</span></div>",
-                    unsafe_allow_html=True,
-                )
+            timeline_markup = "".join(
+                f"<div class='timeline-event'><span class='timeline-minute'>{minute}</span><span class='timeline-summary'>{summary}</span></div>"
+                for minute, summary in timeline
+            )
+            st.markdown(f"<div class='surface-card'>{timeline_markup}</div>", unsafe_allow_html=True)
         else:
             st.markdown(
-                "<div class='detail-card'>Nessun evento dettagliato disponibile per questa partita.</div>",
+                "<div class='surface-card'>Nessun evento dettagliato disponibile per questa partita.</div>",
                 unsafe_allow_html=True,
             )
 
-        st.caption("Statistiche")
+        st.markdown("<div class='subsection-label'>Statistiche</div>", unsafe_allow_html=True)
         stat_values = detail.get("stats") or selected_match["stats"]
-        stats_cols = st.columns(3)
-        for idx, (label, values) in enumerate(list(stat_values.items())[:3]):
-            stats_cols[idx].metric(label, f"{values[0]} | {values[1]}")
+        st.markdown(stat_rows_markup(stat_values), unsafe_allow_html=True)
 
     lower_left, lower_mid, lower_right = st.columns((1.15, 0.75, 0.8), gap="large")
 

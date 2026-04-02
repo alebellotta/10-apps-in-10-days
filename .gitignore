@@ -2,4 +2,16 @@
 __pycache__/
 *.pyc
 .DS_Store
-day-01-idea-rater.log
+day-*.log
+*.db
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+cp .env.example .env
+logs/

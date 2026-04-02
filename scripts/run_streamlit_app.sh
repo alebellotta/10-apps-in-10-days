@@ -50,7 +50,7 @@ if [ "${VENV_VERSION}" != "3.11" ]; then
 fi
 
 echo "Checking dependencies for $(basename "${APP_DIR}")"
-if ! "${PYTHON_VENV}" -c "import streamlit, pandas" >/dev/null 2>&1; then
+if ! "${PYTHON_VENV}" -c "import streamlit" >/dev/null 2>&1; then
   "${PYTHON_VENV}" -m pip install --upgrade pip
   "${PYTHON_VENV}" -m pip install -r "${APP_DIR}/requirements.txt"
 fi

@@ -1,0 +1,13 @@
+brand_voice:
+  tone: "friendly_professional"
+  language_default: "it"
+  max_length_chars: 500
+  emoji_policy: "minimal"
+  signature_enabled: false
+  forbidden_phrases:
+    - "garantito al 100%"
+    - "ti confermo senza verificare"
+  style_rules:
+    - "usa frasi brevi"
+    - "non essere invadente"
+    - "non promettere tempi se non presenti in KB"
