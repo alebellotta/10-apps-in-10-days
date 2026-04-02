@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 from textwrap import dedent
@@ -161,28 +162,25 @@ def inject_css() -> None:
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
         :root {
-            --bg: #f3f1ec;
-            --paper: rgba(255, 255, 255, 0.78);
-            --card: rgba(255, 255, 255, 0.9);
+            --bg: #f6f5f1;
+            --paper: rgba(255, 255, 255, 0.84);
+            --card: rgba(255, 255, 255, 0.94);
             --ink: #15181c;
-            --muted: #66707a;
-            --accent: #ae8a5c;
-            --accent-soft: rgba(174, 138, 92, 0.12);
+            --muted: #6d737b;
+            --accent: #9d7b4f;
+            --accent-soft: rgba(157, 123, 79, 0.1);
             --line: rgba(21, 24, 28, 0.08);
-            --shadow: 0 20px 48px rgba(15, 20, 28, 0.08);
+            --shadow: 0 18px 42px rgba(15, 20, 28, 0.06);
         }
         .stApp {
-            background:
-                radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 20%),
-                radial-gradient(circle at 88% 0%, rgba(174, 138, 92, 0.1), transparent 16%),
-                linear-gradient(180deg, #f8f7f4 0%, var(--bg) 100%);
+            background: var(--bg);
             color: var(--ink);
             font-family: "Manrope", sans-serif;
         }
         .block-container {
-            max-width: 1180px;
-            padding-top: 1.1rem;
-            padding-bottom: 3rem;
+            max-width: 1160px;
+            padding-top: 1.2rem;
+            padding-bottom: 3.2rem;
         }
         h1, h2, h3 {
             font-family: "Fraunces", serif;
@@ -190,7 +188,7 @@ def inject_css() -> None:
             letter-spacing: -0.03em;
         }
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #f6f5f2 0%, #efede8 100%);
+            background: #fbfaf7;
             border-right: 1px solid var(--line);
         }
         [data-testid="stSidebar"] * {
@@ -207,12 +205,11 @@ def inject_css() -> None:
             border-radius: 22px;
         }
         .hero {
-            background:
-                linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(249, 247, 243, 0.82));
-            border: 1px solid rgba(21, 24, 28, 0.08);
+            background: linear-gradient(135deg, #171a1f 0%, #232830 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 32px;
-            padding: 1.6rem 1.7rem;
-            color: var(--ink);
+            padding: 1.8rem 1.9rem;
+            color: #f5f3ef;
             box-shadow: var(--shadow);
             margin-bottom: 1.15rem;
         }
@@ -220,7 +217,7 @@ def inject_css() -> None:
             text-transform: uppercase;
             letter-spacing: 0.22em;
             font-size: 0.72rem;
-            color: var(--muted);
+            color: rgba(245, 243, 239, 0.6);
             margin-bottom: 0.45rem;
         }
         .hero-title {
@@ -228,10 +225,11 @@ def inject_css() -> None:
             line-height: 0.94;
             margin-bottom: 0.6rem;
             max-width: 760px;
+            color: #f9f7f3;
         }
         .hero-copy {
             max-width: 680px;
-            color: var(--muted);
+            color: rgba(245, 243, 239, 0.76);
         }
         .hero-strip {
             display: flex;
@@ -240,15 +238,16 @@ def inject_css() -> None:
             margin-top: 1rem;
         }
         .chip {
-            background: rgba(21, 24, 28, 0.03);
-            border: 1px solid rgba(21, 24, 28, 0.08);
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 999px;
             padding: 0.45rem 0.75rem;
             font-size: 0.78rem;
+            color: #f5f3ef;
         }
         .chip.ai-on {
             background: var(--accent-soft);
-            border-color: rgba(174, 138, 92, 0.24);
+            border-color: rgba(157, 123, 79, 0.24);
         }
         .stButton > button,
         .stDownloadButton > button {
@@ -278,6 +277,9 @@ def inject_css() -> None:
         .stCodeBlock {
             border-radius: 22px;
             border: 1px solid var(--line);
+        }
+        div[data-testid="stMarkdownContainer"] p {
+            line-height: 1.58;
         }
         </style>
         """,
@@ -515,6 +517,46 @@ def build_ai_grounding_payload(
     }
 
 
+def extract_json_object(raw_text: str) -> str:
+    fenced_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", raw_text, flags=re.DOTALL)
+    if fenced_match:
+        return fenced_match.group(1)
+
+    start = raw_text.find("{")
+    end = raw_text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("No JSON object found in Ollama response.")
+    return raw_text[start : end + 1]
+
+
+def request_ollama_json(prompt: str, model: str, temperature: float, max_tokens: int) -> AITripResponse:
+    payload = {
+        "model": model,
+        "stream": False,
+        "prompt": prompt,
+        "options": {
+            "temperature": temperature,
+            "num_predict": max_tokens,
+            "num_ctx": 4096,
+        },
+    }
+    request = Request(
+        f"{DEFAULT_OLLAMA_URL}/api/generate",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=OLLAMA_TIMEOUT_SECONDS) as response:
+        body = json.loads(response.read().decode("utf-8"))
+
+    content = body.get("response", "")
+    if not content:
+        raise RuntimeError("Ollama returned an empty response.")
+
+    json_body = extract_json_object(content)
+    return AITripResponse.model_validate_json(json_body)
+
+
 def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int, selected_mode: str) -> AITripResponse:
     profile = get_ollama_mode_profile(selected_mode)
     compact_days = []
@@ -546,37 +588,62 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         You are a premium travel planner.
 
         Create a concise but polished itinerary for exactly {day_count} day(s).
-        Keep the writing elegant, practical, and compact.
+        Keep the writing elegant, useful, and compact.
 
-        Requirements:
+        Return only valid JSON with this exact shape:
+        {{
+          "overview": "string",
+          "days": [
+            {{
+              "day_number": 1,
+              "title": "string",
+              "morning_plan": "string",
+              "afternoon_plan": "string",
+              "evening_plan": "string",
+              "logistics_tip": "string"
+            }}
+          ],
+          "brief": {{
+            "trip_hook": "string",
+            "client_summary": "string",
+            "booking_checklist": ["string", "string", "string"],
+            "concierge_upgrade": "string"
+          }}
+        }}
+
+        Rules:
         - Respect the destination, pace, budget style, season, and travel-party context.
         - Use the suggested activities as grounding.
         - Keep each field short and direct.
         - Prefer realistic neighborhood flow over overexplaining.
         - Do not invent flights, exact restaurant reservations, or impossible transfers.
-        - Return only JSON that matches the provided schema.
+        - booking_checklist must contain 3 or 4 short bullets.
+        - Do not include markdown fences or commentary.
 
         Grounding data:
         {json.dumps(compact_payload, ensure_ascii=True, separators=(",", ":"))}
         """
     ).strip()
 
-    payload = {
-        "model": profile["model"],
-        "stream": False,
-        "messages": [{"role": "user", "content": prompt}],
-        "format": AITripResponse.model_json_schema(),
-        "options": {"temperature": profile["temperature"], "num_predict": profile["max_tokens"], "num_ctx": 4096},
-    }
-    request = Request(
-        f"{DEFAULT_OLLAMA_URL}/api/chat",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+    fallback_profile = get_ollama_mode_profile("Cheap")
+    attempts = [profile]
+    if profile["model"] != fallback_profile["model"] or profile["max_tokens"] != fallback_profile["max_tokens"]:
+        attempts.append(fallback_profile)
+
     try:
-        with urlopen(request, timeout=OLLAMA_TIMEOUT_SECONDS) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        last_error: Exception | None = None
+        for attempt in attempts:
+            try:
+                return request_ollama_json(
+                    prompt=prompt,
+                    model=attempt["model"],
+                    temperature=attempt["temperature"],
+                    max_tokens=attempt["max_tokens"],
+                )
+            except Exception as exc:  # noqa: PERF203
+                last_error = exc
+        assert last_error is not None
+        raise last_error
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
@@ -584,11 +651,10 @@ def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int,
         raise RuntimeError(
             f"Could not reach Ollama at {DEFAULT_OLLAMA_URL}. Make sure Ollama is running and the model is pulled."
         ) from exc
-
-    content = body.get("message", {}).get("content", "")
-    if not content:
-        raise RuntimeError("Ollama returned an empty response.")
-    return AITripResponse.model_validate_json(content)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Ollama could not produce valid itinerary JSON. Try `Cheap` mode with a smaller model such as `qwen3:4b`. Details: {exc}"
+        ) from exc
 
 
 def build_markdown_export(
