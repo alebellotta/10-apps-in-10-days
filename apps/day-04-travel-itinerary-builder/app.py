@@ -501,7 +501,8 @@ def render_itinerary(itinerary: list[dict[str, object]]) -> None:
         for item in day["items"]:
             activity: Activity = item["activity"]
             rows.append(
-                f"""
+                dedent(
+                    f"""
                 <div class="activity-row">
                     <div class="slot">{item['slot']}</div>
                     <div>
@@ -517,15 +518,18 @@ def render_itinerary(itinerary: list[dict[str, object]]) -> None:
                     <div class="price-pill">{format_currency(activity.price_eur)}</div>
                 </div>
                 """
+                ).strip()
             )
         st.markdown(
-            f"""
+            dedent(
+                f"""
             <section class="day-card">
                 <div class="day-title">{day['theme']}</div>
                 <div class="day-date">{day['date'].strftime('%A, %d %B %Y')}</div>
                 {''.join(rows)}
             </section>
-            """,
+            """
+            ).strip(),
             unsafe_allow_html=True,
         )
 
