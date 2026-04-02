@@ -130,6 +130,23 @@ SEASON_PACKING = {
 }
 
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+AI_MODE_PROFILES = {
+    "Cheap": {
+        "model": os.getenv("OPENAI_CHEAP_MODEL", "gpt-4.1-nano"),
+        "max_output_tokens": 1400,
+        "label": "Lowest cost, fastest draft",
+    },
+    "Balanced": {
+        "model": os.getenv("OPENAI_BALANCED_MODEL", DEFAULT_OPENAI_MODEL),
+        "max_output_tokens": 2200,
+        "label": "Best default for most trips",
+    },
+    "Premium": {
+        "model": os.getenv("OPENAI_PREMIUM_MODEL", "gpt-4.1"),
+        "max_output_tokens": 2800,
+        "label": "Richer copy, higher cost",
+    },
+}
 
 
 def inject_css() -> None:
@@ -466,12 +483,17 @@ def format_currency(amount: int) -> str:
     return f"EUR {amount}"
 
 
-def openai_ready() -> tuple[bool, str]:
+def get_ai_mode_profile(selected_mode: str) -> dict[str, Any]:
+    return AI_MODE_PROFILES.get(selected_mode, AI_MODE_PROFILES["Balanced"])
+
+
+def openai_ready(selected_mode: str) -> tuple[bool, str]:
     if OpenAI is None:
         return False, "Install the `openai` package to enable AI itinerary generation."
     if not os.getenv("OPENAI_API_KEY"):
         return False, "Set `OPENAI_API_KEY` to enable AI concierge mode."
-    return True, f"AI concierge mode ready via {DEFAULT_OPENAI_MODEL}."
+    profile = get_ai_mode_profile(selected_mode)
+    return True, f"{selected_mode} AI mode ready via {profile['model']}."
 
 
 def itinerary_totals(destination: str, budget_style: str, itinerary: list[dict[str, object]]) -> dict[str, int]:
@@ -539,11 +561,12 @@ def build_ai_grounding_payload(
     }
 
 
-def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int) -> AITripResponse:
+def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int, selected_mode: str) -> AITripResponse:
     if OpenAI is None:
         raise RuntimeError("The openai package is not installed.")
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    profile = get_ai_mode_profile(selected_mode)
     prompt = dedent(
         f"""
         You are a premium travel planner preparing client-ready itinerary copy.
@@ -567,9 +590,9 @@ def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int) -> 
     ).strip()
 
     response = client.responses.create(
-        model=DEFAULT_OPENAI_MODEL,
+        model=profile["model"],
         input=prompt,
-        max_output_tokens=2200,
+        max_output_tokens=profile["max_output_tokens"],
         response_format={
             "type": "json_schema",
             "json_schema": {
@@ -872,8 +895,15 @@ def main() -> None:
     )
     wants_nightlife = st.sidebar.toggle("Bias one evening toward nightlife", value=travel_party in {"Couple", "Friends"})
     st.sidebar.markdown("### AI concierge")
-    ai_mode_ready, ai_status = openai_ready()
+    selected_ai_mode = st.sidebar.selectbox(
+        "AI mode",
+        ["Cheap", "Balanced", "Premium"],
+        index=1,
+        help="Choose the tradeoff between cost, speed, and richness of the generated itinerary copy.",
+    )
+    ai_mode_ready, ai_status = openai_ready(selected_ai_mode)
     enable_ai = st.sidebar.toggle("Enable AI client-ready copy", value=ai_mode_ready, disabled=not ai_mode_ready)
+    st.sidebar.caption(get_ai_mode_profile(selected_ai_mode)["label"])
     st.sidebar.caption(ai_status)
     notes = st.sidebar.text_area(
         "Trip notes",
@@ -909,7 +939,7 @@ def main() -> None:
         itinerary=itinerary,
         totals=totals,
     )
-    grounding_signature = json.dumps(grounding_payload, sort_keys=True)
+    grounding_signature = json.dumps({"mode": selected_ai_mode, "payload": grounding_payload}, sort_keys=True)
     generate_ai = False
     if enable_ai and ai_mode_ready:
         if "trip_ai_cache" not in st.session_state:
@@ -921,7 +951,7 @@ def main() -> None:
         if generate_ai:
             with st.spinner("Generating a client-ready itinerary..."):
                 try:
-                    ai_plan = generate_ai_trip_plan(grounding_payload, len(itinerary))
+                    ai_plan = generate_ai_trip_plan(grounding_payload, len(itinerary), selected_ai_mode)
                     ai_cache[grounding_signature] = ai_plan.model_dump()
                 except Exception as exc:
                     st.warning(f"AI generation failed, so the app is showing the curated fallback plan instead. Details: {exc}")
