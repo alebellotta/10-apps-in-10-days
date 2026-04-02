@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from textwrap import dedent
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import streamlit as st
 from pydantic import BaseModel, Field
@@ -130,6 +132,8 @@ SEASON_PACKING = {
 }
 
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+DEFAULT_OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+DEFAULT_OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")
 AI_MODE_PROFILES = {
     "Cheap": {
         "model": os.getenv("OPENAI_CHEAP_MODEL", "gpt-4.1-nano"),
@@ -145,6 +149,23 @@ AI_MODE_PROFILES = {
         "model": os.getenv("OPENAI_PREMIUM_MODEL", "gpt-4.1"),
         "max_output_tokens": 2800,
         "label": "Richer copy, higher cost",
+    },
+}
+OLLAMA_MODE_PROFILES = {
+    "Cheap": {
+        "model": os.getenv("OLLAMA_CHEAP_MODEL", DEFAULT_OLLAMA_MODEL),
+        "temperature": 0.1,
+        "label": "Lowest local cost, fastest local draft",
+    },
+    "Balanced": {
+        "model": os.getenv("OLLAMA_BALANCED_MODEL", DEFAULT_OLLAMA_MODEL),
+        "temperature": 0.2,
+        "label": "Best default for most local runs",
+    },
+    "Premium": {
+        "model": os.getenv("OLLAMA_PREMIUM_MODEL", "qwen3:8b"),
+        "temperature": 0.25,
+        "label": "Richer local copy, heavier model",
     },
 }
 
@@ -487,6 +508,10 @@ def get_ai_mode_profile(selected_mode: str) -> dict[str, Any]:
     return AI_MODE_PROFILES.get(selected_mode, AI_MODE_PROFILES["Balanced"])
 
 
+def get_ollama_mode_profile(selected_mode: str) -> dict[str, Any]:
+    return OLLAMA_MODE_PROFILES.get(selected_mode, OLLAMA_MODE_PROFILES["Balanced"])
+
+
 def openai_ready(selected_mode: str) -> tuple[bool, str]:
     if OpenAI is None:
         return False, "Install the `openai` package to enable AI itinerary generation."
@@ -494,6 +519,11 @@ def openai_ready(selected_mode: str) -> tuple[bool, str]:
         return False, "Set `OPENAI_API_KEY` to enable AI concierge mode."
     profile = get_ai_mode_profile(selected_mode)
     return True, f"{selected_mode} AI mode ready via {profile['model']}."
+
+
+def ollama_ready(selected_mode: str) -> tuple[bool, str]:
+    profile = get_ollama_mode_profile(selected_mode)
+    return True, f"{selected_mode} local mode ready via {profile['model']} at {DEFAULT_OLLAMA_URL}."
 
 
 def itinerary_totals(destination: str, budget_style: str, itinerary: list[dict[str, object]]) -> dict[str, int]:
@@ -603,6 +633,61 @@ def generate_ai_trip_plan(grounding_payload: dict[str, Any], day_count: int, sel
         },
     )
     return AITripResponse.model_validate(json.loads(response.output_text))
+
+
+def generate_ollama_trip_plan(grounding_payload: dict[str, Any], day_count: int, selected_mode: str) -> AITripResponse:
+    profile = get_ollama_mode_profile(selected_mode)
+    prompt = dedent(
+        f"""
+        You are a premium travel planner preparing client-ready itinerary copy.
+
+        Create a polished itinerary for exactly {day_count} day(s). Use the supplied grounding data faithfully.
+        Keep the plan realistic, appealing, and commercially useful. The tone should feel like a boutique agency:
+        confident, warm, specific, and high-end without sounding generic.
+
+        Requirements:
+        - Respect the destination, pace, budget style, season, and travel-party context.
+        - Use the suggested activities as grounding, but elevate them into client-facing prose.
+        - Make each day feel distinct and intentional.
+        - Include practical logistics and booking advice.
+        - Do not invent flights, exact restaurant reservations, or impossible transfers.
+        - If the user noted must-do or avoid preferences, reflect them clearly.
+        - Keep all output in English.
+        - Return only JSON that matches the provided schema.
+
+        Grounding data:
+        {json.dumps(grounding_payload, ensure_ascii=True, separators=(",", ":"))}
+        """
+    ).strip()
+
+    payload = {
+        "model": profile["model"],
+        "stream": False,
+        "messages": [{"role": "user", "content": prompt}],
+        "format": AITripResponse.model_json_schema(),
+        "options": {"temperature": profile["temperature"]},
+    }
+    request = Request(
+        f"{DEFAULT_OLLAMA_URL}/api/chat",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=180) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
+    except URLError as exc:
+        raise RuntimeError(
+            f"Could not reach Ollama at {DEFAULT_OLLAMA_URL}. Make sure Ollama is running and the model is pulled."
+        ) from exc
+
+    content = body.get("message", {}).get("content", "")
+    if not content:
+        raise RuntimeError("Ollama returned an empty response.")
+    return AITripResponse.model_validate_json(content)
 
 
 def build_markdown_export(
@@ -895,16 +980,30 @@ def main() -> None:
     )
     wants_nightlife = st.sidebar.toggle("Bias one evening toward nightlife", value=travel_party in {"Couple", "Friends"})
     st.sidebar.markdown("### AI concierge")
+    ai_provider = st.sidebar.selectbox(
+        "AI provider",
+        ["Ollama", "OpenAI"],
+        help="Use Ollama for local, no-API-cost generation or OpenAI for hosted generation.",
+    )
     selected_ai_mode = st.sidebar.selectbox(
         "AI mode",
         ["Cheap", "Balanced", "Premium"],
         index=1,
         help="Choose the tradeoff between cost, speed, and richness of the generated itinerary copy.",
     )
-    ai_mode_ready, ai_status = openai_ready(selected_ai_mode)
+    if ai_provider == "OpenAI":
+        ai_mode_ready, ai_status = openai_ready(selected_ai_mode)
+        ai_mode_label = get_ai_mode_profile(selected_ai_mode)["label"]
+    else:
+        ai_mode_ready, ai_status = ollama_ready(selected_ai_mode)
+        ai_mode_label = get_ollama_mode_profile(selected_ai_mode)["label"]
     enable_ai = st.sidebar.toggle("Enable AI client-ready copy", value=ai_mode_ready, disabled=not ai_mode_ready)
-    st.sidebar.caption(get_ai_mode_profile(selected_ai_mode)["label"])
+    st.sidebar.caption(ai_mode_label)
     st.sidebar.caption(ai_status)
+    if ai_provider == "Ollama":
+        st.sidebar.caption(
+            "Run `ollama serve` and pull a model such as `qwen3:4b` before generating the itinerary."
+        )
     notes = st.sidebar.text_area(
         "Trip notes",
         placeholder="Example: arriving late on day 1, prefer one museum max per day, vegetarian-friendly stops.",
@@ -939,7 +1038,10 @@ def main() -> None:
         itinerary=itinerary,
         totals=totals,
     )
-    grounding_signature = json.dumps({"mode": selected_ai_mode, "payload": grounding_payload}, sort_keys=True)
+    grounding_signature = json.dumps(
+        {"provider": ai_provider, "mode": selected_ai_mode, "payload": grounding_payload},
+        sort_keys=True,
+    )
     generate_ai = False
     if enable_ai and ai_mode_ready:
         if "trip_ai_cache" not in st.session_state:
@@ -951,7 +1053,10 @@ def main() -> None:
         if generate_ai:
             with st.spinner("Generating a client-ready itinerary..."):
                 try:
-                    ai_plan = generate_ai_trip_plan(grounding_payload, len(itinerary), selected_ai_mode)
+                    if ai_provider == "OpenAI":
+                        ai_plan = generate_ai_trip_plan(grounding_payload, len(itinerary), selected_ai_mode)
+                    else:
+                        ai_plan = generate_ollama_trip_plan(grounding_payload, len(itinerary), selected_ai_mode)
                     ai_cache[grounding_signature] = ai_plan.model_dump()
                 except Exception as exc:
                     st.warning(f"AI generation failed, so the app is showing the curated fallback plan instead. Details: {exc}")
